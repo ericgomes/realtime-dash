@@ -84,9 +84,6 @@
           <input type="checkbox" id="f-iphone" class="w-4 h-4" />
           Só iPhone
         </label>
-        <button id="f-refresh" class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">
-          Atualizar
-        </button>
       </div>
     </section>
 
@@ -435,7 +432,6 @@
       if (id === 'f-period') loadData(); else render();
     }));
     ['f-slow', 'f-iphone'].forEach(id => el(id).addEventListener('change', render));
-    el('f-refresh').addEventListener('click', loadData);
 
     loadData();
     subscribe();
