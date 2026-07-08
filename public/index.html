@@ -53,7 +53,7 @@
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Período</label>
           <select id="f-period" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
@@ -71,8 +71,14 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device / browser</label>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device</label>
           <select id="f-device" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Browser</label>
+          <select id="f-browser" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
             <option value="">Todos</option>
           </select>
         </div>
@@ -80,14 +86,10 @@
           <input type="checkbox" id="f-slow" class="w-4 h-4" />
           Só lentos
         </label>
-        <label class="flex items-center gap-2 text-sm pb-2">
-          <input type="checkbox" id="f-iphone" class="w-4 h-4" />
-          Só iPhone
-        </label>
       </div>
     </section>
 
-    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
       <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
         <div class="text-xs text-slate-500 dark:text-slate-400">Eventos</div>
         <div id="c-count" class="text-xl font-bold">—</div>
@@ -111,10 +113,6 @@
       <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
         <div class="text-xs text-slate-500 dark:text-slate-400">% lento</div>
         <div id="c-slow" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Eventos iPhone</div>
-        <div id="c-iphone" class="text-xl font-bold">—</div>
       </div>
       <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
         <div class="text-xs text-slate-500 dark:text-slate-400">Muito lentos</div>
@@ -247,17 +245,24 @@
       return new Date(row.created_at).getTime() >= Date.now() - periodMinutes() * 60000;
     }
 
+    function deviceOf(r) {
+      if (r.is_iphone) return 'iPhone';
+      if (r.is_android) return 'Android';
+      if (r.is_mobile) return 'Mobile';
+      return 'Desktop';
+    }
+
     function applyFilters(rows) {
       const path = el('f-path').value;
       const device = el('f-device').value;
+      const browser = el('f-browser').value;
       const onlySlow = el('f-slow').checked;
-      const onlyIphone = el('f-iphone').checked;
       return rows.filter(r => {
         if (!inPeriod(r)) return false;
         if (path && r.page_path !== path) return false;
-        if (device && r.device_label !== device) return false;
+        if (device && deviceOf(r) !== device) return false;
+        if (browser && r.browser !== browser) return false;
         if (onlySlow && !r.is_slow) return false;
-        if (onlyIphone && !r.is_iphone) return false;
         return true;
       });
     }
@@ -281,7 +286,6 @@
       el('c-ttfb').textContent = fmtSec(mean(rows.map(r => r.ttfb_ms).filter(v => v !== null)));
       el('c-dom').textContent = fmtSec(mean(rows.map(r => r.dom_ready_ms).filter(v => v !== null)));
       el('c-slow').textContent = pctSlow(rows).toFixed(0) + '%';
-      el('c-iphone').textContent = rows.filter(r => r.is_iphone).length;
       el('c-vslow').textContent = rows.filter(r => r.is_very_slow).length;
     }
 
@@ -367,9 +371,11 @@
 
     function refreshFilterOptions() {
       const paths = [...new Set(allEvents.map(r => r.page_path).filter(Boolean))].sort();
-      const devices = [...new Set(allEvents.map(r => r.device_label).filter(Boolean))].sort();
+      const devices = [...new Set(allEvents.map(deviceOf))].sort();
+      const browsers = [...new Set(allEvents.map(r => r.browser).filter(Boolean))].sort();
       syncSelect('f-path', paths, 'Todas');
       syncSelect('f-device', devices, 'Todos');
+      syncSelect('f-browser', browsers, 'Todos');
     }
 
     function syncSelect(id, values, allLabel) {
@@ -455,11 +461,11 @@
     });
     applyThemeIcon();
 
-    ['f-period', 'f-path', 'f-device'].forEach(id => el(id).addEventListener('change', () => {
+    ['f-period', 'f-path', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => {
       eventsPage = 1;
       if (id === 'f-period') loadData(); else render();
     }));
-    ['f-slow', 'f-iphone'].forEach(id => el(id).addEventListener('change', () => { eventsPage = 1; render(); }));
+    el('f-slow').addEventListener('change', () => { eventsPage = 1; render(); });
 
     loadData();
     subscribe();
