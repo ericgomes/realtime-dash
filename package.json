@@ -1,0 +1,15 @@
+{
+  "name": "realtime-dash",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "latest"
+  },
+  "devDependencies": {
+    "vercel": "latest"
+  }
+}
