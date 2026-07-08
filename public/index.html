@@ -141,6 +141,7 @@
           <tbody id="t-events"></tbody>
         </table>
       </div>
+      <div id="events-pagination" class="flex items-center justify-between gap-3 mt-3 text-sm"></div>
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -189,10 +190,12 @@
     const SITE = 'prospin.com.br';
 
     const MAX_EVENTS = 1000;
+    const EVENTS_PAGE_SIZE = 25;
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allEvents = [];
     let lastEventAt = null;
+    let eventsPage = 1;
 
     const el = (id) => document.getElementById(id);
 
@@ -284,7 +287,14 @@
 
     function renderEvents(rows) {
       const body = el('t-events');
-      const rowsHtml = rows.slice(0, 200).map(r => {
+      const total = rows.length;
+      const totalPages = Math.max(1, Math.ceil(total / EVENTS_PAGE_SIZE));
+      if (eventsPage > totalPages) eventsPage = totalPages;
+      if (eventsPage < 1) eventsPage = 1;
+      const start = (eventsPage - 1) * EVENTS_PAGE_SIZE;
+      const pageRows = rows.slice(start, start + EVENTS_PAGE_SIZE);
+
+      const rowsHtml = pageRows.map(r => {
         const net = (r.effective_type || '—') + (r.downlink ? ' · ' + r.downlink : '');
         const screen = (r.width || '?') + '×' + (r.height || '?');
         return '<tr class="border-b dark:border-slate-700 ' + rowClass(r) + '">' +
@@ -299,6 +309,23 @@
           '</tr>';
       }).join('');
       body.innerHTML = rowsHtml || '<tr><td class="py-3 text-slate-400" colspan="8">Sem eventos no período.</td></tr>';
+
+      renderEventsPagination(total, totalPages, start, pageRows.length);
+    }
+
+    function renderEventsPagination(total, totalPages, start, shown) {
+      const bar = el('events-pagination');
+      if (!total) { bar.innerHTML = ''; return; }
+      const btn = 'px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed';
+      bar.innerHTML =
+        '<span class="text-slate-500 dark:text-slate-400">' + (start + 1) + '–' + (start + shown) + ' de ' + total + '</span>' +
+        '<div class="flex items-center gap-2">' +
+          '<button id="ev-prev" class="' + btn + '"' + (eventsPage <= 1 ? ' disabled' : '') + '>Anterior</button>' +
+          '<span class="text-slate-500 dark:text-slate-400">Página ' + eventsPage + '/' + totalPages + '</span>' +
+          '<button id="ev-next" class="' + btn + '"' + (eventsPage >= totalPages ? ' disabled' : '') + '>Próxima</button>' +
+        '</div>';
+      el('ev-prev').addEventListener('click', () => { if (eventsPage > 1) { eventsPage--; render(); } });
+      el('ev-next').addEventListener('click', () => { if (eventsPage < totalPages) { eventsPage++; render(); } });
     }
 
     function groupBy(rows, key) {
@@ -429,9 +456,10 @@
     applyThemeIcon();
 
     ['f-period', 'f-path', 'f-device'].forEach(id => el(id).addEventListener('change', () => {
+      eventsPage = 1;
       if (id === 'f-period') loadData(); else render();
     }));
-    ['f-slow', 'f-iphone'].forEach(id => el(id).addEventListener('change', render));
+    ['f-slow', 'f-iphone'].forEach(id => el(id).addEventListener('change', () => { eventsPage = 1; render(); }));
 
     loadData();
     subscribe();
