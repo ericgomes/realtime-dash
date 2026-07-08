@@ -53,6 +53,9 @@ Criar uma tag do tipo **HTML personalizado** com o gatilho **Window Loaded**. Tr
 ```html
 <script>
 (function() {
+  var SAMPLE_RATE = 0.10;
+  if (Math.random() >= SAMPLE_RATE) return;
+
   var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
   if (!nav) return;
 
@@ -134,6 +137,19 @@ truncate table public.load_events;
 - **Eventos muito lentos** — `load_time_ms >= 10000` (10s). Experiência crítica.
 
 Para o objetivo do projeto, olhar o cruzamento **iPhone / Safari** com **p95** e **% lento** — é onde problemas de migração aparecem primeiro.
+
+## Escala e custo
+
+O prospin tem volume alto (~2M carregamentos/mês, mais em campanhas). Duas medidas mantêm o custo previsível:
+
+- **Amostragem (10%)** — a tag do GTM só envia uma fração dos carregamentos (`SAMPLE_RATE = 0.10`). É amostragem **uniforme** (mesma taxa pra todos), então `p95`, `% lento` e médias continuam sendo estimativas corretas do total. Apenas os números **absolutos** ficam em escala — multiplique por `1/SAMPLE_RATE` (10x) para o volume real. Para ajustar, mude `SAMPLE_RATE` na tag e republique o container.
+- **Retenção (7 dias)** — um job `pg_cron` apaga eventos antigos todo dia às 3h, mantendo o storage estável. Rodar uma vez, no **SQL Editor** do Supabase:
+
+```sql
+-- conteúdo de supabase/retention.sql
+```
+
+Para conferir o job agendado: `select * from cron.job;`. Para trocar a janela, reagende com outro `interval`.
 
 ## Multi-cliente (futuro)
 
