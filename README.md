@@ -65,14 +65,11 @@ Depois use `?tenant=fisk` na ingestão e no dashboard. Os demais campos têm def
 
 ## Tag do GTM
 
-Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` por `INGEST_SECRET`. O `SAMPLE_RATE` controla a amostragem (10% = envia 1 em cada 10 carregamentos).
+Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` por `INGEST_SECRET`. A amostragem **não fica mais na tag** — é definida por cliente em `tenants.sample_rate` e aplicada no servidor (`/api/ingest`).
 
 ```html
 <script>
 (function() {
-  var SAMPLE_RATE = 0.10;
-  if (Math.random() >= SAMPLE_RATE) return;
-
   var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
   if (!nav) return;
 
@@ -145,7 +142,7 @@ Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenan
 
 ## Escala e custo
 
-- **Amostragem (10%)** na tag do GTM (`SAMPLE_RATE`). Amostragem uniforme: `p95`/`% lento` seguem corretos; números absolutos ficam em escala (×10 para o real).
+- **Amostragem por tenant** (`tenants.sample_rate`, padrão 0.10) aplicada no servidor em `/api/ingest`. Amostragem uniforme: `p95` e percentuais seguem corretos; o dashboard mostra a taxa e estima os eventos reais (amostra ÷ taxa). Como a amostragem é server-side, a Vercel recebe todos os eventos (a economia é de storage no Supabase); se o volume de invocações virar problema, mover a amostragem de volta para a tag ou usar Pro.
 - **Retenção por tenant** (`retention_days`): `/api/aggregate` apaga eventos brutos antigos e snapshots com mais de 7 dias.
 - Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 

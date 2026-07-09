@@ -124,6 +124,7 @@ module.exports = async (req, res) => {
           minGroupSize: tenant.min_group_size,
           slowThresholdMs: tenant.slow_threshold_ms,
           verySlowThresholdMs: tenant.very_slow_threshold_ms,
+          sampleRate: tenant.sample_rate,
           defaultPeriodKey: tenant.default_period_key
         },
         periodKey: p.key,

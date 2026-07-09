@@ -13,11 +13,14 @@ create table if not exists public.tenants (
   min_group_size integer not null default 5,
   slow_threshold_ms integer not null default 5000,
   very_slow_threshold_ms integer not null default 10000,
+  sample_rate numeric not null default 0.10,
   timezone text not null default 'America/Sao_Paulo',
   storage_mode text not null default 'shared',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.tenants add column if not exists sample_rate numeric not null default 0.10;
 
 create index if not exists tenants_slug_idx on public.tenants (slug);
 create index if not exists tenants_active_idx on public.tenants (is_active);
