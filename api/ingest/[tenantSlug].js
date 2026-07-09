@@ -1,7 +1,7 @@
-const { handleIngest } = require('../lib/ingest-core');
+const { handleIngest } = require('../../lib/ingest-core');
 
 module.exports = async (req, res) => {
   const q = req.query || {};
-  const slug = q.tenant || q.tenantSlug || 'prospin';
+  const slug = q.tenantSlug || 'prospin';
   return handleIngest(req, res, slug);
 };
