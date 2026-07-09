@@ -126,10 +126,12 @@ curl "https://SEU-PROJETO.vercel.app/api/summary?tenant=prospin&period=60m"
 
 `/?tenant=prospin`. Foco em **percentuais e comparação**, não em lista de eventos.
 
-- **Cards:** eventos, % lento+, % muito lento, load p95, TTFB médio, DOM Ready médio, iPhone % lento, pior agrupamento.
-- **Charts:** distribuição de performance, gargalo (TTFB vs DOM vs Load), % lento por página, por device/browser, iPhone vs demais, por conexão.
-- **Tabelas:** por página, device/browser, browser e OS.
-- **Filtros:** período (15m–24h), mínimo por grupo, filtro de página e device, auto-refresh (30s).
+- **Cards:** eventos, load médio, load p95, TTFB médio, DOM Ready médio, % ≥ 5s, % ≥ 10s (os limites vêm dos thresholds do tenant).
+- **Charts:** distribuição por tempo de carregamento, tempos médios (TTFB/DOM/Load), load p95 por página, por device/browser e por conexão.
+- **Tabelas:** por página, device/browser, browser e OS (ordenadas por p95).
+- **Filtros:** período (15m–24h), mínimo por grupo, e selects de página, device e browser (populados com os valores reais). Atualização automática (30s) + cron.
+
+A apresentação é neutra: o dashboard mostra tempos e distribuições factuais (faixas de tempo), sem rotular acessos como "lentos".
 
 Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenant (padrão 1 min).
 
