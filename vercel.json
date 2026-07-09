@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/aggregate",
+      "schedule": "*/1 * * * *"
+    }
+  ]
+}
