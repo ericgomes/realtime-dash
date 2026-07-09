@@ -36,10 +36,19 @@
         <p id="h-subtitle" class="text-sm text-slate-500 dark:text-slate-400">carregando…</p>
         <p id="h-status" class="text-xs text-slate-400 dark:text-slate-500 mt-1"></p>
       </div>
-      <button id="theme-toggle" aria-label="Alternar tema"
-        class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">
-        <span id="theme-icon">🌙</span>
-      </button>
+      <div class="flex items-center gap-3">
+        <div class="relative w-9 h-9" title="Próxima atualização dos dados">
+          <svg class="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-slate-200 dark:text-slate-700" />
+            <circle id="rf-ring" cx="18" cy="18" r="15" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="0" />
+          </svg>
+          <span id="rf-secs" class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-slate-500 dark:text-slate-300">30</span>
+        </div>
+        <button id="theme-toggle" aria-label="Alternar tema"
+          class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
@@ -153,7 +162,7 @@
         </div>
       </section>
 
-      <h2 class="text-lg font-bold mb-3">Devices &amp; Browsers</h2>
+      <h2 class="text-lg font-bold mb-3">Devices</h2>
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
           <h3 class="font-semibold mb-3">Load p95 por device / browser</h3>
@@ -163,7 +172,15 @@
           <h3 class="font-semibold mb-3">Detalhes por device / browser</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-device" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-device"></tbody></table></div>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 lg:col-span-2">
+      </section>
+
+      <h2 class="text-lg font-bold mb-3">Browsers</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Load p95 por browser</h3>
+          <div class="h-64"><canvas id="chart-browser"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
           <h3 class="font-semibold mb-3">Detalhes por browser</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-browser" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-browser"></tbody></table></div>
         </div>
@@ -428,6 +445,7 @@
 
       charts.page = p95Chart('chart-page', filterPages(summary.byPage).slice(0, 10), t);
       charts.device = p95Chart('chart-device', filterDevices(summary.byDevice).slice(0, 10), t);
+      charts.browser = p95Chart('chart-browser', filterBrowsers(summary.byBrowser), t);
       charts.os = p95Chart('chart-os', applyMin(summary.byOs), t);
       charts.conn = p95Chart('chart-conn', applyMin(summary.byConnection), t);
     }
@@ -575,14 +593,34 @@
     });
     applyThemeIcon();
 
-    el('f-period').addEventListener('change', fetchSummary);
+    const REFRESH_SEC = Math.round(REFRESH_MS / 1000);
+    const RING_C = 2 * Math.PI * 15;
+    let secsLeft = REFRESH_SEC;
+
+    function updateRefreshRing() {
+      el('rf-ring').style.strokeDashoffset = (RING_C * (1 - secsLeft / REFRESH_SEC)).toFixed(1);
+      el('rf-secs').textContent = secsLeft;
+    }
+    function refreshNow() {
+      fetchSummary();
+      secsLeft = REFRESH_SEC;
+      updateRefreshRing();
+    }
+    function tick() {
+      secsLeft -= 1;
+      if (secsLeft <= 0) { fetchSummary(); secsLeft = REFRESH_SEC; }
+      updateRefreshRing();
+      setStatus();
+    }
+
+    el('f-period').addEventListener('change', refreshNow);
     ['f-min', 'f-page', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); }));
 
     el('f-tenant').value = getTenantFromUrl();
     el('f-period').value = '60m';
     fetchSummary();
-    setInterval(fetchSummary, REFRESH_MS);
-    setInterval(setStatus, 1000);
+    updateRefreshRing();
+    setInterval(tick, 1000);
   </script>
 </body>
 </html>
