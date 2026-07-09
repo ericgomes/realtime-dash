@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Realtime Dash</title>
+  <title>Live Site Monitor</title>
 
   <script>
     (function() {
@@ -32,7 +32,12 @@
 
     <header class="flex flex-wrap items-start justify-between gap-3 mb-6">
       <div>
-        <h1 id="h-title" class="text-2xl font-bold text-slate-900 dark:text-white">Realtime Dash</h1>
+        <h1 id="h-title" class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span class="inline-flex items-center gap-1 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
+            <span class="animate-pulse">●</span> Live
+          </span>
+          Site Monitor
+        </h1>
         <p id="h-subtitle" class="text-sm text-slate-500 dark:text-slate-400">carregando…</p>
         <p id="h-status" class="text-xs text-slate-400 dark:text-slate-500 mt-1"></p>
       </div>
@@ -548,8 +553,7 @@
         }
       }
 
-      el('h-title').textContent = 'Realtime Dash — ' + (t.name || getTenantFromUrl());
-      el('h-subtitle').textContent = (t.site || '') + ' · atualizado em ' + fmtTimeSP(summary.generatedAt);
+      el('h-subtitle').textContent = (t.site || getTenantFromUrl()) + ' · monitoramento em tempo real';
       el('f-tenant').value = t.slug || getTenantFromUrl();
 
       if (!summary.overall || !summary.overall.total) {
