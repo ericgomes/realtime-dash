@@ -57,12 +57,7 @@
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
-        <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tenant</label>
-          <input id="f-tenant" type="text" readonly
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm bg-slate-50" />
-        </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Período</label>
           <select id="f-period" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
@@ -553,8 +548,9 @@
         }
       }
 
-      el('h-subtitle').textContent = (t.site || getTenantFromUrl()) + ' · monitoramento em tempo real';
-      el('f-tenant').value = t.slug || getTenantFromUrl();
+      el('h-subtitle').innerHTML = '<span class="text-xl font-bold text-slate-800 dark:text-slate-100">' +
+        (t.site || getTenantFromUrl()) + '</span>' +
+        '<span class="text-sm text-slate-500 dark:text-slate-400"> · monitoramento em tempo real</span>';
 
       if (!summary.overall || !summary.overall.total) {
         setStatus();
@@ -620,7 +616,6 @@
     el('f-period').addEventListener('change', refreshNow);
     ['f-min', 'f-page', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); }));
 
-    el('f-tenant').value = getTenantFromUrl();
     el('f-period').value = '60m';
     fetchSummary();
     updateRefreshRing();
