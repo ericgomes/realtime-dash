@@ -43,7 +43,7 @@
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tenant</label>
           <input id="f-tenant" type="text" readonly
@@ -88,9 +88,6 @@
             <option value="">Todos</option>
           </select>
         </div>
-        <label class="flex items-center gap-2 text-sm pb-2">
-          <input type="checkbox" id="f-auto" class="w-4 h-4" checked /> Atualização automática
-        </label>
       </div>
     </section>
 
@@ -175,6 +172,40 @@
         </section>
       </div>
     </div>
+
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-sm leading-relaxed">
+      <h2 class="text-lg font-bold mb-2">Sobre este dashboard</h2>
+      <p class="text-slate-600 dark:text-slate-300 mb-4">
+        Mostra a performance de carregamento de páginas medida em <strong>usuários reais</strong> (RUM), coletada
+        pelo navegador via GTM. Os dados são <strong>amostrados</strong> (uma fração dos acessos) e consolidados em
+        resumos por período. A leitura é neutra: apresenta tempos e distribuições, sem rotular acessos como bons ou ruins.
+      </p>
+
+      <h3 class="font-semibold mb-2">Métricas</h3>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-slate-600 dark:text-slate-300 mb-4">
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">TTFB (Time To First Byte)</dt>
+          <dd>Tempo entre a requisição e o primeiro byte da resposta. Reflete servidor e rede, antes do frontend renderizar.</dd></div>
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">DOM Ready</dt>
+          <dd>Tempo até a estrutura da página ficar pronta (DOMContentLoaded), antes de imagens e recursos pesados.</dd></div>
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">Load</dt>
+          <dd>Tempo total até a página terminar de carregar (loadEventEnd). É o tempo de "página pronta".</dd></div>
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">Média</dt>
+          <dd>Soma dividida pela quantidade de acessos. Sensível a valores extremos.</dd></div>
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">p75 / p95 (percentis)</dt>
+          <dd>p95 = 95% dos acessos carregaram nesse tempo ou menos. Descreve a cauda (os acessos mais demorados) melhor que a média.</dd></div>
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">% ≥ 5s / % ≥ 10s</dt>
+          <dd>Proporção de acessos acima desses tempos. Os limites são configuráveis por cliente.</dd></div>
+        <div class="sm:col-span-2"><dt class="font-semibold text-slate-800 dark:text-slate-100">Distribuição por tempo de carregamento</dt>
+          <dd>Como os acessos se dividem entre faixas de tempo (ex.: &lt; 3s, 3–5s, 5–10s, ≥ 10s).</dd></div>
+      </dl>
+
+      <h3 class="font-semibold mb-2">Observações</h3>
+      <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300 space-y-1">
+        <li><strong>Amostragem:</strong> os percentuais e percentis representam o todo; os números absolutos de eventos são uma amostra (menores que o volume real).</li>
+        <li><strong>Dados agregados:</strong> atualizam periodicamente (não são evento a evento). O horário de atualização e a janela aparecem no topo.</li>
+        <li>Datas e horários no fuso de São Paulo.</li>
+      </ul>
+    </section>
 
   </div>
 
@@ -497,17 +528,10 @@
     el('f-period').addEventListener('change', fetchSummary);
     ['f-min', 'f-page', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); }));
 
-    let timer = null;
-    function setAutoRefresh() {
-      if (timer) { clearInterval(timer); timer = null; }
-      if (el('f-auto').checked) timer = setInterval(fetchSummary, REFRESH_MS);
-    }
-    el('f-auto').addEventListener('change', setAutoRefresh);
-
     el('f-tenant').value = getTenantFromUrl();
     el('f-period').value = '60m';
     fetchSummary();
-    setAutoRefresh();
+    setInterval(fetchSummary, REFRESH_MS);
     setInterval(setStatus, 1000);
   </script>
 </body>
