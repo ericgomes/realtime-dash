@@ -65,11 +65,14 @@ Depois use `?tenant=fisk` na ingestão e no dashboard. Os demais campos têm def
 
 ## Tag do GTM
 
-Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` por `INGEST_SECRET`. A amostragem **não fica mais na tag** — é definida por cliente em `tenants.sample_rate` e aplicada no servidor (`/api/ingest`).
+Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` por `INGEST_SECRET`. O `SAMPLE_RATE` controla a amostragem (10% = envia 1 em cada 10) e é **enviado no payload** para o backend estimar o total real.
 
 ```html
 <script>
 (function() {
+  var SAMPLE_RATE = 0.10;
+  if (Math.random() >= SAMPLE_RATE) return;
+
   var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
   if (!nav) return;
 
@@ -77,6 +80,7 @@ Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI`
     site: 'prospin.com.br',
     page_location: location.href,
     page_path: location.pathname,
+    sample_rate: SAMPLE_RATE,
     load_time_ms: Math.round(nav.loadEventEnd - nav.startTime),
     dom_ready_ms: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
     ttfb_ms: Math.round(nav.responseStart - nav.requestStart),
@@ -142,7 +146,8 @@ Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenan
 
 ## Escala e custo
 
-- **Amostragem por tenant** (`tenants.sample_rate`, padrão 0.10) aplicada no servidor em `/api/ingest`. Amostragem uniforme: `p95` e percentuais seguem corretos; o dashboard mostra a taxa e estima os eventos reais (amostra ÷ taxa). Como a amostragem é server-side, a Vercel recebe todos os eventos (a economia é de storage no Supabase); se o volume de invocações virar problema, mover a amostragem de volta para a tag ou usar Pro.
+- **Amostragem na tag do GTM** (`SAMPLE_RATE`, padrão 0.10), enviada no payload como `sample_rate`. Reduz invocações da Vercel **e** storage. O backend guarda o `sample_rate` efetivo por evento e estima o total real somando `1/sample_rate` (correto mesmo com taxas diferentes). O dashboard mostra a amostra e a estimativa.
+- **Rede de segurança:** `tenants.sample_rate` é um **teto** por cliente. Se um evento chegar sem amostragem (ex.: alguém removeu o `SAMPLE_RATE` da tag), o `/api/ingest` re-amostra no servidor até esse teto — protegendo o custo mesmo com erro no GTM.
 - **Retenção por tenant** (`retention_days`): `/api/aggregate` apaga eventos brutos antigos e snapshots com mais de 7 dias.
 - Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 

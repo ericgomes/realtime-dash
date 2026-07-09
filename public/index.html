@@ -473,9 +473,10 @@
       el('lbl-vslow').textContent = '% ≥ ' + sLabel(t.verySlowThresholdMs || 10000);
       el('c-count').textContent = formatNumber(o.total);
       const rate = (t.sampleRate && t.sampleRate > 0 && t.sampleRate <= 1) ? t.sampleRate : 1;
-      el('c-count-est').textContent = rate < 1
-        ? '≈ ' + formatNumber(Math.round(o.total / rate)) + ' reais · amostra ' + Math.round(rate * 100) + '%'
-        : 'amostra 100%';
+      const est = (o.estimatedTotal != null) ? o.estimatedTotal : (rate < 1 ? Math.round(o.total / rate) : o.total);
+      el('c-count-est').textContent = est > o.total
+        ? '≈ ' + formatNumber(est) + ' reais · amostra ' + Math.round(rate * 100) + '%'
+        : 'amostra ' + Math.round(rate * 100) + '%';
       const exp = el('exp-sample');
       if (exp) exp.textContent = Math.round(rate * 100) + '%';
       el('c-avg').textContent = formatSeconds(o.avgLoadMs);
