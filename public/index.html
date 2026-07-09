@@ -81,9 +81,9 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Página / path</label>
-          <select id="f-page" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todas</option>
-          </select>
+          <input id="f-page" list="f-page-list" type="text" placeholder="buscar página…"
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
+          <datalist id="f-page-list"></datalist>
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device</label>
@@ -159,6 +159,7 @@
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
           <h3 class="font-semibold mb-3">Detalhes por página</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-page" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-page"></tbody></table></div>
+          <div id="page-pagination" class="flex items-center justify-between gap-3 mt-3 text-sm"></div>
         </div>
       </section>
 
@@ -258,6 +259,8 @@
     let lastSummary = null;
     let charts = {};
     let defaultApplied = false;
+    let pagesPage = 1;
+    const PAGE_TABLE_SIZE = 15;
 
     function getTenantFromUrl() {
       const p = new URLSearchParams(location.search);
@@ -303,8 +306,10 @@
       return { dev: (p[0] || '').trim(), br: (p[1] || '').trim() };
     }
     function filterPages(groups) {
-      const pg = el('f-page').value;
-      return applyMin(groups).filter(g => !pg || g.key === pg);
+      const q = el('f-page').value.trim().toLowerCase();
+      let g = applyMin(groups);
+      if (q) g = g.filter(x => String(x.key).toLowerCase().includes(q));
+      return g;
     }
     function filterDevices(groups) {
       const dv = el('f-device').value;
@@ -327,10 +332,10 @@
       if (values.includes(current)) sel.value = current;
     }
     function populateFilters(summary) {
-      const pages = [...new Set((summary.byPage || []).map(g => g.key))].sort();
+      const pageKeys = sortGroups(summary.byPage || []).map(g => g.key);
+      el('f-page-list').innerHTML = pageKeys.map(k => '<option value="' + k + '"></option>').join('');
       const devices = [...new Set((summary.byDevice || []).map(g => deviceParts(g.key).dev).filter(Boolean))].sort();
       const browsers = [...new Set((summary.byBrowser || []).map(g => g.key))].sort();
-      syncSelect('f-page', pages, 'Todas');
       syncSelect('f-device', devices, 'Todos');
       syncSelect('f-browser', browsers, 'Todos');
     }
@@ -492,11 +497,32 @@
         el(id).innerHTML = list.length ? list.map(fn).join('') :
           '<tr><td class="py-3 text-slate-400" colspan="' + colspan + '">Sem dados.</td></tr>';
       };
-      fill('tb-page', pages, rowFull, 8);
+      const totalPages = Math.max(1, Math.ceil(pages.length / PAGE_TABLE_SIZE));
+      if (pagesPage > totalPages) pagesPage = totalPages;
+      if (pagesPage < 1) pagesPage = 1;
+      const start = (pagesPage - 1) * PAGE_TABLE_SIZE;
+      fill('tb-page', pages.slice(start, start + PAGE_TABLE_SIZE), rowFull, 8);
+      renderPagePagination(pages.length, totalPages, start, Math.min(PAGE_TABLE_SIZE, pages.length - start));
+
       fill('tb-device', devices, rowFull, 8);
       fill('tb-browser', browsers, rowSlim, 5);
       fill('tb-os', oses, rowSlim, 5);
       fill('tb-conn', conns, rowSlim, 5);
+    }
+
+    function renderPagePagination(total, totalPages, start, shown) {
+      const bar = el('page-pagination');
+      if (total <= PAGE_TABLE_SIZE) { bar.innerHTML = ''; return; }
+      const btn = 'px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed';
+      bar.innerHTML =
+        '<span class="text-slate-500 dark:text-slate-400">' + (start + 1) + '–' + (start + shown) + ' de ' + total + '</span>' +
+        '<div class="flex items-center gap-2">' +
+          '<button id="pg-prev" class="' + btn + '"' + (pagesPage <= 1 ? ' disabled' : '') + '>Anterior</button>' +
+          '<span class="text-slate-500 dark:text-slate-400">Página ' + pagesPage + '/' + totalPages + '</span>' +
+          '<button id="pg-next" class="' + btn + '"' + (pagesPage >= totalPages ? ' disabled' : '') + '>Próxima</button>' +
+        '</div>';
+      el('pg-prev').addEventListener('click', () => { if (pagesPage > 1) { pagesPage--; if (lastSummary) renderTables(lastSummary); } });
+      el('pg-next').addEventListener('click', () => { if (pagesPage < totalPages) { pagesPage++; if (lastSummary) renderTables(lastSummary); } });
     }
 
     function renderCards(summary) {
@@ -613,8 +639,14 @@
       setStatus();
     }
 
-    el('f-period').addEventListener('change', refreshNow);
-    ['f-min', 'f-page', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); }));
+    let pageSearchTimer = null;
+    el('f-page').addEventListener('input', () => {
+      pagesPage = 1;
+      clearTimeout(pageSearchTimer);
+      pageSearchTimer = setTimeout(() => { if (lastSummary) updateDashboard(lastSummary); }, 200);
+    });
+    ['f-min', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { pagesPage = 1; if (lastSummary) updateDashboard(lastSummary); }));
+    el('f-period').addEventListener('change', () => { pagesPage = 1; refreshNow(); });
 
     el('f-period').value = '60m';
     fetchSummary();
