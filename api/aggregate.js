@@ -10,6 +10,12 @@ const PERIODS = [
   { key: '24h', minutes: 1440 }
 ];
 
+function normRate(v) {
+  if (typeof v !== 'number' || !(v > 0)) return null;
+  const r = v > 1 ? v / 100 : v;
+  return (r > 0 && r <= 1) ? r : null;
+}
+
 function authorized(req) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
@@ -54,7 +60,7 @@ function overallStats(events, tenant) {
   }
   let estimatedTotal = 0;
   for (const e of events) {
-    const r = (typeof e.sample_rate === 'number' && e.sample_rate > 0 && e.sample_rate <= 1) ? e.sample_rate : 1;
+    const r = normRate(e.sample_rate) || 1;
     estimatedTotal += 1 / r;
   }
 
@@ -131,7 +137,7 @@ module.exports = async (req, res) => {
           minGroupSize: tenant.min_group_size,
           slowThresholdMs: tenant.slow_threshold_ms,
           verySlowThresholdMs: tenant.very_slow_threshold_ms,
-          sampleRate: tenant.sample_rate,
+          sampleRate: normRate(tenant.sample_rate),
           defaultPeriodKey: tenant.default_period_key
         },
         periodKey: p.key,
