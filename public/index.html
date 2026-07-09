@@ -311,7 +311,7 @@
         grid: dark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.15)'
       };
     }
-    const BUCKET_COLORS = ['#bfdbfe', '#60a5fa', '#3b82f6', '#1d4ed8'];
+    const BUCKET_COLORS = ['#16a34a', '#84cc16', '#eab308', '#f97316', '#dc2626'];
     const ACCENT = '#3b82f6';
 
     function destroyCharts() {
@@ -337,7 +337,7 @@
     function bucketLabels(t) {
       const slow = t.slowThresholdMs || 5000;
       const very = t.verySlowThresholdMs || 10000;
-      return ['< 3s', '3–' + sLabel(slow), sLabel(slow) + '–' + sLabel(very), '≥ ' + sLabel(very)];
+      return ['< 1s', '1–3s', '3–' + sLabel(slow), sLabel(slow) + '–' + sLabel(very), '≥ ' + sLabel(very)];
     }
 
     function p95Chart(id, groups) {
@@ -361,7 +361,7 @@
         data: {
           labels: bucketLabels(t),
           datasets: [{
-            data: [o.fastPercent || 0, o.okPercent || 0, o.slowPercent || 0, o.verySlowPercent || 0],
+            data: [o.veryFastPercent || 0, o.fastPercent || 0, o.okPercent || 0, o.slowPercent || 0, o.verySlowPercent || 0],
             backgroundColor: BUCKET_COLORS
           }]
         },

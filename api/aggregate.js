@@ -54,6 +54,7 @@ function overallStats(events, tenant) {
   }
   return {
     total: g.total,
+    veryFastPercent: g.veryFastPercent,
     fastPercent: g.fastPercent,
     okPercent: g.okPercent,
     slowPercent: g.slowPercent,
