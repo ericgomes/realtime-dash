@@ -335,9 +335,10 @@
 
 
     function bucketLabels(t) {
+      const num = ms => { const s = ms / 1000; return Number.isInteger(s) ? s : s.toFixed(1); };
       const slow = t.slowThresholdMs || 5000;
       const very = t.verySlowThresholdMs || 10000;
-      return ['< 1s', '1–3s', '3–' + sLabel(slow), sLabel(slow) + '–' + sLabel(very), '≥ ' + sLabel(very)];
+      return ['< 1s', '1–3s', '3–' + num(slow) + 's', num(slow) + '–' + num(very) + 's', '≥ ' + num(very) + 's'];
     }
 
     function p95Chart(id, groups) {
