@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Realtime Dash — prospin.com.br</title>
+  <title>Realtime Dash</title>
 
   <script>
     (function() {
@@ -22,455 +22,504 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Rajdhani', 'ui-sans-serif', 'system-ui', 'sans-serif']
-          }
-        }
-      }
+      theme: { extend: { fontFamily: { sans: ['Rajdhani', 'ui-sans-serif', 'system-ui', 'sans-serif'] } } }
     };
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="font-sans bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
   <div class="max-w-7xl mx-auto p-4 sm:p-6">
 
-    <header class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <header class="flex flex-wrap items-start justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Realtime Dash — prospin.com.br</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Monitoramento de performance em tempo real</p>
+        <h1 id="h-title" class="text-2xl font-bold text-slate-900 dark:text-white">Realtime Dash</h1>
+        <p id="h-subtitle" class="text-sm text-slate-500 dark:text-slate-400">carregando…</p>
+        <p id="h-status" class="text-xs text-slate-400 dark:text-slate-500 mt-1"></p>
       </div>
-      <div class="flex items-center gap-3 text-sm">
-        <span id="rt-dot" class="inline-block w-3 h-3 rounded-full bg-slate-400"></span>
-        <span id="rt-status" class="font-medium">conectando...</span>
-        <span id="rt-last" class="text-slate-500 dark:text-slate-400"></span>
-        <button id="theme-toggle" aria-label="Alternar tema"
-          class="ml-1 w-9 h-9 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">
-          <span id="theme-icon">🌙</span>
-        </button>
-      </div>
+      <button id="theme-toggle" aria-label="Alternar tema"
+        class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">
+        <span id="theme-icon">🌙</span>
+      </button>
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tenant</label>
+          <input id="f-tenant" type="text" readonly
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm bg-slate-50" />
+        </div>
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Período</label>
           <select id="f-period" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="15">Últimos 15 min</option>
-            <option value="30">Últimos 30 min</option>
-            <option value="60">Últimos 60 min</option>
-            <option value="180" selected>Últimas 3h</option>
-            <option value="360">Últimas 6h</option>
+            <option value="15m">Últimos 15 min</option>
+            <option value="30m">Últimos 30 min</option>
+            <option value="60m">Últimos 60 min</option>
+            <option value="3h">Últimas 3h</option>
+            <option value="6h">Últimas 6h</option>
+            <option value="24h">Últimas 24h</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Mínimo por grupo</label>
+          <select id="f-min" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
           </select>
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Página / path</label>
-          <select id="f-path" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todas</option>
-          </select>
+          <input id="f-page" type="text" placeholder="filtrar…"
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device</label>
-          <select id="f-device" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todos</option>
-          </select>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device / browser</label>
+          <input id="f-device" type="text" placeholder="filtrar…"
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Browser</label>
-          <select id="f-browser" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todos</option>
-          </select>
+        <div class="flex items-center gap-2">
+          <button id="f-refresh" class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">
+            Atualizar
+          </button>
+          <label class="flex items-center gap-1 text-xs">
+            <input type="checkbox" id="f-auto" class="w-4 h-4" checked /> auto
+          </label>
         </div>
-        <label class="flex items-center gap-2 text-sm pb-2">
-          <input type="checkbox" id="f-slow" class="w-4 h-4" />
-          Só lentos
-        </label>
       </div>
     </section>
 
-    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Eventos</div>
-        <div id="c-count" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Load médio</div>
-        <div id="c-avg" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Load p95</div>
-        <div id="c-p95" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">TTFB médio</div>
-        <div id="c-ttfb" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">DOM Ready médio</div>
-        <div id="c-dom" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">% lento</div>
-        <div id="c-slow" class="text-xl font-bold">—</div>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Muito lentos</div>
-        <div id="c-vslow" class="text-xl font-bold">—</div>
-      </div>
-    </section>
+    <div id="empty-state" class="hidden bg-white dark:bg-slate-800 rounded-xl shadow-sm p-8 text-center mb-6">
+      <p id="empty-title" class="text-lg font-semibold"></p>
+      <p id="empty-sub" class="text-sm text-slate-500 dark:text-slate-400 mt-1"></p>
+    </div>
 
-    <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <h2 class="font-semibold mb-3">Últimos eventos</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700">
-            <tr>
-              <th class="py-2 pr-3">Horário (SP)</th>
-              <th class="py-2 pr-3">Page path</th>
-              <th class="py-2 pr-3">Load</th>
-              <th class="py-2 pr-3">DOM Ready</th>
-              <th class="py-2 pr-3">TTFB</th>
-              <th class="py-2 pr-3">Device</th>
-              <th class="py-2 pr-3">Rede</th>
-              <th class="py-2 pr-3">Tela</th>
-            </tr>
-          </thead>
-          <tbody id="t-events"></tbody>
-        </table>
-      </div>
-      <div id="events-pagination" class="flex items-center justify-between gap-3 mt-3 text-sm"></div>
-    </section>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-        <h2 class="font-semibold mb-3">Páginas mais lentas</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700">
-              <tr>
-                <th class="py-2 pr-3">Page path</th>
-                <th class="py-2 pr-3">Eventos</th>
-                <th class="py-2 pr-3">Load médio</th>
-                <th class="py-2 pr-3">p95</th>
-                <th class="py-2 pr-3">% lento</th>
-              </tr>
-            </thead>
-            <tbody id="t-pages"></tbody>
-          </table>
+    <div id="content">
+      <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">Eventos no período</div>
+          <div id="c-count" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">% lento ou muito lento</div>
+          <div id="c-slow" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">% muito lento</div>
+          <div id="c-vslow" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">Load p95</div>
+          <div id="c-p95" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">TTFB médio</div>
+          <div id="c-ttfb" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">DOM Ready médio</div>
+          <div id="c-dom" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">iPhone % lento</div>
+          <div id="c-iphone" class="text-xl font-bold">—</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">Pior agrupamento</div>
+          <div id="c-worst" class="text-base font-bold leading-tight mt-1">—</div>
         </div>
       </section>
 
-      <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-        <h2 class="font-semibold mb-3">Devices / browsers mais lentos</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700">
-              <tr>
-                <th class="py-2 pr-3">Device</th>
-                <th class="py-2 pr-3">Eventos</th>
-                <th class="py-2 pr-3">Load médio</th>
-                <th class="py-2 pr-3">p95</th>
-                <th class="py-2 pr-3">% lento</th>
-              </tr>
-            </thead>
-            <tbody id="t-devices"></tbody>
-          </table>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">Distribuição de performance</h2>
+          <div class="h-64"><canvas id="chart-dist"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">Onde está o gargalo? (médias)</h2>
+          <div class="h-64"><canvas id="chart-bottleneck"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">% lento por página</h2>
+          <div class="h-64"><canvas id="chart-page"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">% lento por device / browser</h2>
+          <div class="h-64"><canvas id="chart-device"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">iPhone vs demais</h2>
+          <div class="h-64"><canvas id="chart-iphone"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">% lento por conexão</h2>
+          <div class="h-64"><canvas id="chart-conn"></canvas></div>
         </div>
       </section>
+
+      <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
+        <h2 class="font-semibold mb-3">Performance por página</h2>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-page" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-page"></tbody></table></div>
+      </section>
+
+      <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
+        <h2 class="font-semibold mb-3">Performance por device / browser</h2>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-device" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-device"></tbody></table></div>
+      </section>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">Performance por browser</h2>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-browser" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-browser"></tbody></table></div>
+        </section>
+        <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h2 class="font-semibold mb-3">Performance por OS</h2>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-os" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-os"></tbody></table></div>
+        </section>
+      </div>
+
+      <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+        <summary class="font-semibold cursor-pointer">Eventos brutos / debug</summary>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Eventos brutos disponíveis apenas no banco.</p>
+      </details>
     </div>
 
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://qbrjymubcwzboyhtjafd.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFicmp5bXViY3d6Ym95aHRqYWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MTkwMzIsImV4cCI6MjA5OTA5NTAzMn0.vnVrDcMm2Az5q1fjbUJn7HO9MQ3F6QEZAGmWEmUSbMI';
-    const SITE = 'prospin.com.br';
-
-    const MAX_EVENTS = 1000;
-    const EVENTS_PAGE_SIZE = 25;
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let allEvents = [];
-    let lastEventAt = null;
-    let eventsPage = 1;
+    const API_BASE = 'https://realtime-dash-eric-9609s-projects.vercel.app';
+    const REFRESH_MS = 30000;
+    const PERIOD_LABELS = { '15m': '15 min', '30m': '30 min', '60m': '60 min', '3h': '3h', '6h': '6h', '24h': '24h' };
 
     const el = (id) => document.getElementById(id);
+    let lastSummary = null;
+    let charts = {};
+    let defaultApplied = false;
 
-    function periodMinutes() {
-      return parseInt(el('f-period').value, 10);
+    function getTenantFromUrl() {
+      const p = new URLSearchParams(location.search);
+      return (p.get('tenant') || 'prospin').toLowerCase();
     }
 
-    function periodStartISO() {
-      return new Date(Date.now() - periodMinutes() * 60000).toISOString();
-    }
+    function getSelectedPeriod() { return el('f-period').value; }
+    function getMinGroup() { return parseInt(el('f-min').value, 10) || 1; }
 
-    function fmtSec(ms) {
-      if (ms === null || ms === undefined || !Number.isFinite(Number(ms))) return '—';
+    function formatSeconds(ms) {
+      if (ms == null || isNaN(ms)) return '—';
       return (Number(ms) / 1000).toFixed(1) + 's';
     }
-
+    function formatPercent(v) {
+      if (v == null || isNaN(v)) return '—';
+      return Number(v).toFixed(1) + '%';
+    }
+    function formatNumber(v) {
+      if (v == null || isNaN(v)) return '—';
+      return Number(v).toLocaleString('pt-BR');
+    }
     function fmtTimeSP(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
-        day: '2-digit', month: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
       });
     }
 
-    function mean(arr) {
-      if (!arr.length) return null;
-      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    function sortGroups(groups) {
+      return [...groups].sort((a, b) => (b.score - a.score) || (b.total - a.total));
+    }
+    function filterGroups(groups, textFilter) {
+      const min = getMinGroup();
+      let g = (groups || []).filter(x => x.total >= min);
+      if (textFilter) {
+        const t = textFilter.toLowerCase();
+        g = g.filter(x => String(x.key).toLowerCase().includes(t));
+      }
+      return sortGroups(g);
     }
 
-    function percentile(arr, p) {
-      if (!arr.length) return null;
-      const s = [...arr].sort((a, b) => a - b);
-      const idx = Math.ceil((p / 100) * s.length) - 1;
-      return s[Math.max(0, Math.min(s.length - 1, idx))];
+    function getWorstGroup(summary) {
+      const pages = filterGroups(summary.byPage, el('f-page').value).map(g => ({ ...g, scope: 'página' }));
+      const devices = filterGroups(summary.byDevice, el('f-device').value).map(g => ({ ...g, scope: 'device' }));
+      const all = pages.concat(devices);
+      if (!all.length) return null;
+      return sortGroups(all)[0];
     }
 
-    function loadValues(rows) {
-      return rows.map(r => r.load_time_ms).filter(v => v !== null && v !== undefined);
+    function setStatus() {
+      if (!lastSummary) { el('h-status').textContent = ''; return; }
+      const s = lastSummary;
+      const ageSec = Math.round((Date.now() - new Date(s.generatedAt).getTime()) / 1000);
+      const ageTxt = ageSec < 90 ? ageSec + 's' : Math.round(ageSec / 60) + ' min';
+      el('h-status').textContent =
+        'Dados agregados · última atualização há ' + ageTxt + ' · janela: últimos ' + (PERIOD_LABELS[s.periodKey] || s.periodMinutes + ' min');
     }
 
-    function pctSlow(rows) {
-      if (!rows.length) return 0;
-      const n = rows.filter(r => r.is_slow).length;
-      return (n / rows.length) * 100;
+    function themeColors() {
+      const dark = document.documentElement.classList.contains('dark');
+      return {
+        text: dark ? '#cbd5e1' : '#475569',
+        grid: dark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.15)'
+      };
+    }
+    const PERF_COLORS = { fast: '#22c55e', ok: '#3b82f6', slow: '#f59e0b', verySlow: '#ef4444' };
+    const ACCENT = '#f97316';
+
+    function destroyCharts() {
+      Object.values(charts).forEach(c => { try { c.destroy(); } catch (e) {} });
+      charts = {};
     }
 
-    function inPeriod(row) {
-      return new Date(row.created_at).getTime() >= Date.now() - periodMinutes() * 60000;
+    function baseOptions(horizontal) {
+      const tc = themeColors();
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: horizontal ? 'y' : 'x',
+        plugins: { legend: { labels: { color: tc.text } } },
+        scales: {
+          x: { ticks: { color: tc.text }, grid: { color: tc.grid } },
+          y: { ticks: { color: tc.text }, grid: { color: tc.grid } }
+        }
+      };
     }
 
-    function deviceOf(r) {
-      if (r.is_iphone) return 'iPhone';
-      if (r.is_android) return 'Android';
-      if (r.is_mobile) return 'Mobile';
-      return 'Desktop';
+    function topGroups(groups, textFilter, n) {
+      return filterGroups(groups, textFilter).slice(0, n);
     }
 
-    function applyFilters(rows) {
-      const path = el('f-path').value;
-      const device = el('f-device').value;
-      const browser = el('f-browser').value;
-      const onlySlow = el('f-slow').checked;
-      return rows.filter(r => {
-        if (!inPeriod(r)) return false;
-        if (path && r.page_path !== path) return false;
-        if (device && deviceOf(r) !== device) return false;
-        if (browser && r.browser !== browser) return false;
-        if (onlySlow && !r.is_slow) return false;
-        return true;
+    function deviceCategories(byDevice) {
+      const cats = { 'iPhone': [0, 0], 'Android': [0, 0], 'Desktop': [0, 0], 'Outros mobile': [0, 0] };
+      (byDevice || []).forEach(g => {
+        const prefix = String(g.key).split(' / ')[0].trim();
+        let cat = 'Outros mobile';
+        if (prefix === 'iPhone') cat = 'iPhone';
+        else if (prefix === 'Android') cat = 'Android';
+        else if (prefix === 'Desktop') cat = 'Desktop';
+        const base = g.fastCount + g.okCount + g.slowCount + g.verySlowCount;
+        cats[cat][0] += g.slowCount + g.verySlowCount;
+        cats[cat][1] += base;
+      });
+      const labels = [], data = [];
+      Object.keys(cats).forEach(k => {
+        const [bad, base] = cats[k];
+        if (base > 0) { labels.push(k); data.push((bad / base) * 100); }
+      });
+      return { labels, data };
+    }
+
+    function renderCharts(summary) {
+      destroyCharts();
+      const o = summary.overall;
+
+      charts.dist = new Chart(el('chart-dist'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Rápido', 'Aceitável', 'Lento', 'Muito lento'],
+          datasets: [{
+            data: [o.fastPercent || 0, o.okPercent || 0, o.slowPercent || 0, o.verySlowPercent || 0],
+            backgroundColor: [PERF_COLORS.fast, PERF_COLORS.ok, PERF_COLORS.slow, PERF_COLORS.verySlow]
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: themeColors().text } },
+            tooltip: { callbacks: { label: (c) => c.label + ': ' + Number(c.raw).toFixed(1) + '%' } }
+          }
+        }
+      });
+
+      charts.bottleneck = new Chart(el('chart-bottleneck'), {
+        type: 'bar',
+        data: {
+          labels: ['TTFB', 'DOM Ready', 'Load'],
+          datasets: [{
+            label: 'Segundos',
+            data: [(o.avgTtfbMs || 0) / 1000, (o.avgDomReadyMs || 0) / 1000, (o.avgLoadMs || 0) / 1000],
+            backgroundColor: [PERF_COLORS.ok, PERF_COLORS.slow, ACCENT]
+          }]
+        },
+        options: baseOptions(false)
+      });
+
+      const pg = topGroups(summary.byPage, el('f-page').value, 10);
+      charts.page = new Chart(el('chart-page'), {
+        type: 'bar',
+        data: { labels: pg.map(g => g.key), datasets: [{ label: '% lento+', data: pg.map(g => g.slowOrVerySlowPercent), backgroundColor: ACCENT }] },
+        options: baseOptions(true)
+      });
+
+      const dv = topGroups(summary.byDevice, el('f-device').value, 10);
+      charts.device = new Chart(el('chart-device'), {
+        type: 'bar',
+        data: { labels: dv.map(g => g.key), datasets: [{ label: '% lento+', data: dv.map(g => g.slowOrVerySlowPercent), backgroundColor: ACCENT }] },
+        options: baseOptions(true)
+      });
+
+      const cat = deviceCategories(summary.byDevice);
+      charts.iphone = new Chart(el('chart-iphone'), {
+        type: 'bar',
+        data: { labels: cat.labels, datasets: [{ label: '% lento+', data: cat.data, backgroundColor: cat.labels.map(l => l === 'iPhone' ? PERF_COLORS.verySlow : PERF_COLORS.ok) }] },
+        options: baseOptions(false)
+      });
+
+      const cn = filterGroups(summary.byConnection, '');
+      charts.conn = new Chart(el('chart-conn'), {
+        type: 'bar',
+        data: { labels: cn.map(g => g.key), datasets: [{ label: '% lento+', data: cn.map(g => g.slowOrVerySlowPercent), backgroundColor: ACCENT }] },
+        options: baseOptions(true)
       });
     }
 
-    function rowClass(r) {
-      const t = r.load_time_ms;
-      if (t !== null && t >= 10000) return 'bg-red-100 dark:bg-red-500/25';
-      if (t !== null && t >= 5000) return 'bg-yellow-100 dark:bg-yellow-500/25';
-      return '';
+    function th(cols) {
+      return '<tr>' + cols.map(c => '<th class="py-2 pr-3">' + c + '</th>').join('') + '</tr>';
+    }
+    function td(v, cls) { return '<td class="py-2 pr-3 ' + (cls || '') + '">' + v + '</td>'; }
+
+    function rowFull(g) {
+      return '<tr class="border-b dark:border-slate-700">' +
+        td(g.key) + td(formatNumber(g.total)) +
+        td(formatPercent(g.fastPercent)) + td(formatPercent(g.okPercent)) +
+        td(formatPercent(g.slowPercent)) + td(formatPercent(g.verySlowPercent)) +
+        td(formatSeconds(g.p95LoadMs)) + td(formatSeconds(g.avgLoadMs)) + td(formatSeconds(g.avgTtfbMs)) +
+        td(g.score.toFixed(1), 'font-medium') + '</tr>';
+    }
+    function rowSlim(g) {
+      return '<tr class="border-b dark:border-slate-700">' +
+        td(g.key) + td(formatNumber(g.total)) +
+        td(formatPercent(g.slowPercent)) + td(formatPercent(g.verySlowPercent)) +
+        td(formatSeconds(g.p95LoadMs)) + td(formatSeconds(g.avgLoadMs)) +
+        td(g.score.toFixed(1), 'font-medium') + '</tr>';
     }
 
-    function td(content, cls) {
-      return '<td class="py-2 pr-3 ' + (cls || '') + '">' + content + '</td>';
+    function renderTables(summary) {
+      const fullCols = ['Grupo', 'Eventos', '% rápido', '% aceitável', '% lento', '% muito lento', 'p95', 'Load méd', 'TTFB méd', 'Score'];
+      const slimCols = ['Grupo', 'Eventos', '% lento', '% muito lento', 'p95', 'Load méd', 'Score'];
+
+      el('th-page').innerHTML = th(fullCols);
+      el('th-device').innerHTML = th(fullCols);
+      el('th-browser').innerHTML = th(slimCols);
+      el('th-os').innerHTML = th(slimCols);
+
+      const pages = filterGroups(summary.byPage, el('f-page').value);
+      const devices = filterGroups(summary.byDevice, el('f-device').value);
+      const browsers = filterGroups(summary.byBrowser, '');
+      const oses = filterGroups(summary.byOs, '');
+
+      const fill = (id, list, fn, colspan) => {
+        el(id).innerHTML = list.length ? list.map(fn).join('') :
+          '<tr><td class="py-3 text-slate-400" colspan="' + colspan + '">Sem dados.</td></tr>';
+      };
+      fill('tb-page', pages, rowFull, 10);
+      fill('tb-device', devices, rowFull, 10);
+      fill('tb-browser', browsers, rowSlim, 7);
+      fill('tb-os', oses, rowSlim, 7);
     }
 
-    function renderCards(rows) {
-      const lv = loadValues(rows);
-      el('c-count').textContent = rows.length;
-      el('c-avg').textContent = fmtSec(mean(lv));
-      el('c-p95').textContent = fmtSec(percentile(lv, 95));
-      el('c-ttfb').textContent = fmtSec(mean(rows.map(r => r.ttfb_ms).filter(v => v !== null)));
-      el('c-dom').textContent = fmtSec(mean(rows.map(r => r.dom_ready_ms).filter(v => v !== null)));
-      el('c-slow').textContent = pctSlow(rows).toFixed(0) + '%';
-      el('c-vslow').textContent = rows.filter(r => r.is_very_slow).length;
+    function renderCards(summary) {
+      const o = summary.overall;
+      el('c-count').textContent = formatNumber(o.total);
+      el('c-slow').textContent = formatPercent(o.slowOrVerySlowPercent);
+      el('c-vslow').textContent = formatPercent(o.verySlowPercent);
+      el('c-p95').textContent = formatSeconds(o.p95LoadMs);
+      el('c-ttfb').textContent = formatSeconds(o.avgTtfbMs);
+      el('c-dom').textContent = formatSeconds(o.avgDomReadyMs);
+      el('c-iphone').textContent = formatPercent(o.iphoneSlowPercent);
+      const worst = getWorstGroup(summary);
+      el('c-worst').textContent = worst ? (worst.key + ' · ' + formatPercent(worst.slowOrVerySlowPercent)) : '—';
     }
 
-    function renderEvents(rows) {
-      const body = el('t-events');
-      const total = rows.length;
-      const totalPages = Math.max(1, Math.ceil(total / EVENTS_PAGE_SIZE));
-      if (eventsPage > totalPages) eventsPage = totalPages;
-      if (eventsPage < 1) eventsPage = 1;
-      const start = (eventsPage - 1) * EVENTS_PAGE_SIZE;
-      const pageRows = rows.slice(start, start + EVENTS_PAGE_SIZE);
-
-      const rowsHtml = pageRows.map(r => {
-        const net = (r.effective_type || '—') + (r.downlink ? ' · ' + r.downlink : '');
-        const screen = (r.width || '?') + '×' + (r.height || '?');
-        return '<tr class="border-b dark:border-slate-700 ' + rowClass(r) + '">' +
-          td(fmtTimeSP(r.created_at)) +
-          td(r.page_path || '—') +
-          td(fmtSec(r.load_time_ms), 'font-medium') +
-          td(fmtSec(r.dom_ready_ms)) +
-          td(fmtSec(r.ttfb_ms)) +
-          td(r.device_label || '—') +
-          td(net) +
-          td(screen) +
-          '</tr>';
-      }).join('');
-      body.innerHTML = rowsHtml || '<tr><td class="py-3 text-slate-400" colspan="8">Sem eventos no período.</td></tr>';
-
-      renderEventsPagination(total, totalPages, start, pageRows.length);
+    function showEmpty(title, sub) {
+      el('content').classList.add('hidden');
+      el('empty-state').classList.remove('hidden');
+      el('empty-title').textContent = title;
+      el('empty-sub').textContent = sub || '';
+    }
+    function hideEmpty() {
+      el('empty-state').classList.add('hidden');
+      el('content').classList.remove('hidden');
     }
 
-    function renderEventsPagination(total, totalPages, start, shown) {
-      const bar = el('events-pagination');
-      if (!total) { bar.innerHTML = ''; return; }
-      const btn = 'px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed';
-      bar.innerHTML =
-        '<span class="text-slate-500 dark:text-slate-400">' + (start + 1) + '–' + (start + shown) + ' de ' + total + '</span>' +
-        '<div class="flex items-center gap-2">' +
-          '<button id="ev-prev" class="' + btn + '"' + (eventsPage <= 1 ? ' disabled' : '') + '>Anterior</button>' +
-          '<span class="text-slate-500 dark:text-slate-400">Página ' + eventsPage + '/' + totalPages + '</span>' +
-          '<button id="ev-next" class="' + btn + '"' + (eventsPage >= totalPages ? ' disabled' : '') + '>Próxima</button>' +
-        '</div>';
-      el('ev-prev').addEventListener('click', () => { if (eventsPage > 1) { eventsPage--; render(); } });
-      el('ev-next').addEventListener('click', () => { if (eventsPage < totalPages) { eventsPage++; render(); } });
+    function updateDashboard(summary) {
+      lastSummary = summary;
+      const t = summary.tenant || {};
+
+      if (!defaultApplied) {
+        defaultApplied = true;
+        if (t.minGroupSize && ['1', '3', '5', '10', '20'].includes(String(t.minGroupSize))) {
+          el('f-min').value = String(t.minGroupSize);
+        }
+        const dp = t.defaultPeriodKey || '60m';
+        if (dp !== getSelectedPeriod() && PERIOD_LABELS[dp]) {
+          el('f-period').value = dp;
+          fetchSummary();
+          return;
+        }
+      }
+
+      el('h-title').textContent = 'Realtime Dash — ' + (t.name || getTenantFromUrl());
+      el('h-subtitle').textContent = (t.site || '') + ' · atualizado em ' + fmtTimeSP(summary.generatedAt);
+      el('f-tenant').value = t.slug || getTenantFromUrl();
+
+      if (!summary.overall || !summary.overall.total) {
+        setStatus();
+        showEmpty('Nenhum evento no período selecionado.', 'Ajuste o período ou aguarde novos acessos.');
+        return;
+      }
+      hideEmpty();
+      renderCards(summary);
+      renderCharts(summary);
+      renderTables(summary);
+      setStatus();
     }
 
-    function groupBy(rows, key) {
-      const map = new Map();
-      rows.forEach(r => {
-        const k = r[key] || '—';
-        if (!map.has(k)) map.set(k, []);
-        map.get(k).push(r);
-      });
-      const out = [];
-      map.forEach((group, k) => {
-        const lv = loadValues(group);
-        out.push({
-          key: k,
-          count: group.length,
-          avg: mean(lv),
-          p95: percentile(lv, 95),
-          slow: pctSlow(group)
-        });
-      });
-      out.sort((a, b) => (b.p95 || 0) - (a.p95 || 0));
-      return out;
-    }
-
-    function renderGroup(rows, key, tbodyId) {
-      const body = el(tbodyId);
-      const groups = groupBy(rows, key);
-      const html = groups.map(g =>
-        '<tr class="border-b dark:border-slate-700">' +
-        td(g.key) +
-        td(g.count) +
-        td(fmtSec(g.avg)) +
-        td(fmtSec(g.p95)) +
-        td(g.slow.toFixed(0) + '%') +
-        '</tr>'
-      ).join('');
-      body.innerHTML = html || '<tr><td class="py-3 text-slate-400" colspan="5">Sem dados.</td></tr>';
-    }
-
-    function refreshFilterOptions() {
-      const paths = [...new Set(allEvents.map(r => r.page_path).filter(Boolean))].sort();
-      const devices = [...new Set(allEvents.map(deviceOf))].sort();
-      const browsers = [...new Set(allEvents.map(r => r.browser).filter(Boolean))].sort();
-      syncSelect('f-path', paths, 'Todas');
-      syncSelect('f-device', devices, 'Todos');
-      syncSelect('f-browser', browsers, 'Todos');
-    }
-
-    function syncSelect(id, values, allLabel) {
-      const sel = el(id);
-      const current = sel.value;
-      sel.innerHTML = '<option value="">' + allLabel + '</option>' +
-        values.map(v => '<option value="' + v + '">' + v + '</option>').join('');
-      if (values.includes(current)) sel.value = current;
-    }
-
-    function render() {
-      const rows = applyFilters(allEvents);
-      renderCards(rows);
-      renderEvents(rows);
-      renderGroup(rows, 'page_path', 't-pages');
-      renderGroup(rows, 'device_label', 't-devices');
-    }
-
-    async function loadData() {
-      const { data, error } = await client
-        .from('load_events')
-        .select('*')
-        .eq('site', SITE)
-        .gte('created_at', periodStartISO())
-        .order('created_at', { ascending: false })
-        .limit(MAX_EVENTS);
-      if (error) return;
-      allEvents = data || [];
-      refreshFilterOptions();
-      render();
-    }
-
-    function addEvent(row) {
-      if (row.site !== SITE) return;
-      allEvents.unshift(row);
-      if (allEvents.length > MAX_EVENTS) allEvents.length = MAX_EVENTS;
-      lastEventAt = Date.now();
-      refreshFilterOptions();
-      render();
-    }
-
-    function setRealtimeStatus(state) {
-      const dot = el('rt-dot');
-      const status = el('rt-status');
-      if (state === 'connected') {
-        dot.className = 'inline-block w-3 h-3 rounded-full bg-green-500';
-        status.textContent = 'conectado';
-      } else {
-        dot.className = 'inline-block w-3 h-3 rounded-full bg-red-500';
-        status.textContent = 'desconectado';
+    async function fetchSummary() {
+      const tenant = getTenantFromUrl();
+      const period = getSelectedPeriod();
+      try {
+        const r = await fetch(API_BASE + '/api/summary?tenant=' + encodeURIComponent(tenant) + '&period=' + encodeURIComponent(period));
+        const j = await r.json();
+        if (!j.ok) {
+          showEmpty('Ainda não há resumo gerado para este tenant/período.', 'Rode /api/aggregate ou aguarde o próximo cron.');
+          return;
+        }
+        updateDashboard(j.summary);
+      } catch (e) {
+        showEmpty('Falha ao carregar o resumo.', 'Verifique a conexão com a API.');
       }
     }
 
-    function updateLastSeen() {
-      const label = el('rt-last');
-      if (!lastEventAt) { label.textContent = ''; return; }
-      const secs = Math.round((Date.now() - lastEventAt) / 1000);
-      label.textContent = '· último evento há ' + secs + 's';
-    }
-
-    function subscribe() {
-      client
-        .channel('load_events_stream')
-        .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'load_events' },
-          (payload) => addEvent(payload.new))
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') setRealtimeStatus('connected');
-          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setRealtimeStatus('disconnected');
-        });
-    }
-
     function applyThemeIcon() {
-      const dark = document.documentElement.classList.contains('dark');
-      el('theme-icon').textContent = dark ? '☀️' : '🌙';
+      el('theme-icon').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
     }
-
     el('theme-toggle').addEventListener('click', () => {
       const root = document.documentElement;
       root.classList.toggle('dark');
       localStorage.setItem('theme', root.classList.contains('dark') ? 'dark' : 'light');
       applyThemeIcon();
+      if (lastSummary) updateDashboard(lastSummary);
     });
     applyThemeIcon();
 
-    ['f-period', 'f-path', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => {
-      eventsPage = 1;
-      if (id === 'f-period') loadData(); else render();
-    }));
-    el('f-slow').addEventListener('change', () => { eventsPage = 1; render(); });
+    el('f-period').addEventListener('change', fetchSummary);
+    el('f-refresh').addEventListener('click', fetchSummary);
+    ['f-min', 'f-page', 'f-device'].forEach(id => el(id).addEventListener('input', () => { if (lastSummary) updateDashboard(lastSummary); }));
+    el('f-min').addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); });
 
-    loadData();
-    subscribe();
-    setInterval(loadData, 30000);
-    setInterval(updateLastSeen, 1000);
+    let timer = null;
+    function setAutoRefresh() {
+      if (timer) { clearInterval(timer); timer = null; }
+      if (el('f-auto').checked) timer = setInterval(fetchSummary, REFRESH_MS);
+    }
+    el('f-auto').addEventListener('change', setAutoRefresh);
+
+    el('f-tenant').value = getTenantFromUrl();
+    el('f-period').value = '60m';
+    fetchSummary();
+    setAutoRefresh();
+    setInterval(setStatus, 1000);
   </script>
 </body>
 </html>

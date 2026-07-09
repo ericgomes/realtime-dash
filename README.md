@@ -1,54 +1,71 @@
-# Realtime Dash — prospin.com.br
+# Realtime Dash
 
-Dashboard em HTML puro para monitorar, em tempo real, a performance de carregamento de páginas de usuários reais do `prospin.com.br`. Objetivo: identificar se usuários reais — especialmente em **iPhone / Safari** — estão sofrendo com carregamento lento após a migração do site.
+Ferramenta **multi-tenant** de monitoramento de performance de carregamento (RUM) para múltiplos clientes/sites. O foco é identificar, por percentuais e comparativos, se usuários reais — especialmente em **iPhone / Safari** — estão sofrendo com lentidão.
 
 ## Arquitetura
 
 ```
-GTM (site) --> POST /api/ingest (Vercel) --> Supabase Postgres
-                                                    |
-                                          Supabase Realtime
-                                                    |
-                                          public/index.html (dashboard)
+GTM (site) --> POST /api/ingest?tenant=slug --> load_events (bruto, com tenant_id)
+                                                        |
+                                          /api/aggregate (Vercel Cron)
+                                                        |
+                                          load_summary_snapshots (agregado por tenant/período)
+                                                        |
+                                          GET /api/summary?tenant=slug&period=60m
+                                                        |
+                                          public/index.html (dashboard com charts)
 ```
 
-- **Frontend:** HTML puro em `public/` (Tailwind e Supabase JS via CDN).
-- **Ingestão:** Vercel Serverless Function em `api/ingest.js`.
-- **Banco:** Supabase Postgres com RLS (leitura pública, insert só pela API).
-- **Tempo real:** Supabase Realtime.
-
-O GTM **nunca** grava direto no Supabase — só chama `POST /api/ingest`, que valida o segredo (`x-ingest-secret`) e o `site`, e grava usando `SUPABASE_SERVICE_ROLE_KEY` (que só existe no backend). O frontend usa apenas a `SUPABASE_ANON_KEY`, com permissão de **leitura** via RLS.
+- **Multi-tenant:** um único Supabase/database, tabelas compartilhadas com `tenant_id`. Config por cliente na tabela `tenants` (retenção, thresholds, freshness, timezone, domínios).
+- **Ingestão:** `api/ingest.js` (query `?tenant=`) e `api/ingest/[tenantSlug].js` (rota dinâmica). Valida segredo + `allowed_domains`, aplica thresholds do tenant, grava bruto.
+- **Agregação:** `api/aggregate.js` roda por cron, gera snapshots por tenant/período. O frontend **não lê mais eventos brutos** — lê só o snapshot.
+- **Dashboard:** HTML puro + Tailwind + Chart.js, consome `/api/summary`. Percentuais, rankings e gráficos comparativos.
+- **Segurança:** `SUPABASE_SERVICE_ROLE_KEY` só no backend. Insert de eventos/snapshots só via API. Frontend usa apenas os endpoints.
 
 ## Recursos em produção
 
 | Recurso | Onde |
 |---|---|
-| Dashboard | https://realtime-dash-eric-9609s-projects.vercel.app |
-| API de ingestão | https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest |
+| Dashboard | https://realtime-dash-eric-9609s-projects.vercel.app/?tenant=prospin |
+| Ingestão | https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest?tenant=prospin |
+| Summary | https://realtime-dash-eric-9609s-projects.vercel.app/api/summary?tenant=prospin&period=60m |
 | Repositório | https://github.com/ericgomes/realtime-dash |
 | Banco | Supabase (projeto `qbrjymubcwzboyhtjafd`) |
 
-Variáveis de ambiente na Vercel (já configuradas): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `INGEST_SECRET`, `ALLOWED_SITE`. A `SUPABASE_SERVICE_ROLE_KEY` só é usada em `api/ingest.js` e nunca aparece no frontend.
+Variáveis de ambiente na Vercel: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `INGEST_SECRET`, `CRON_SECRET`.
 
 ---
 
-## O que falta para o go-live
+## Modelo de dados (multi-tenant)
 
-### 1. Liberar o domínio no CSP do site
+- **`tenants`** — um registro por cliente/site. Config: `slug`, `name`, `site`, `allowed_domains[]`, `is_active`, `retention_days`, `aggregation_freshness_minutes`, `default_period_key`, `min_group_size`, `slow_threshold_ms`, `very_slow_threshold_ms`, `timezone`.
+- **`load_events`** — eventos brutos, com `tenant_id` obrigatório.
+- **`load_summary_snapshots`** — snapshots agregados por tenant/período, lidos pelo dashboard.
 
-O site do prospin tem um `Content-Security-Policy` cuja diretiva `connect-src` restringe para onde a página pode enviar requisições. O domínio de ingestão precisa estar nessa lista, senão o navegador bloqueia o envio das métricas.
+### Criar um novo tenant
 
-Pedir ao responsável pelo site para adicionar em `connect-src`:
+No SQL Editor do Supabase:
 
+```sql
+insert into public.tenants (slug, name, site, allowed_domains)
+values ('fisk', 'Fisk', 'fisk.com.br', array['fisk.com.br', 'www.fisk.com.br']);
 ```
-https://realtime-dash-eric-9609s-projects.vercel.app
-```
 
-> Se no futuro a ingestão migrar para um domínio próprio (ex.: `ingest.agencialinka.com.br`), basta liberar esse domínio no CSP e trocar a URL do `fetch` na tag do GTM.
+Depois use `?tenant=fisk` na ingestão e no dashboard. Os demais campos têm defaults sensatos e podem ser ajustados por `update`.
 
-### 2. Configurar a tag no GTM
+## Setup / migração
 
-Criar uma tag do tipo **HTML personalizado** com o gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` pelo valor de `INGEST_SECRET`.
+1. **Schema:** rodar `supabase/schema.sql` no SQL Editor (idempotente — cria `tenants`, `tenant_id`, `load_summary_snapshots`, índices, RLS).
+2. **Retenção antiga:** a retenção agora é por tenant (via `/api/aggregate`). Se existia o job `pg_cron` antigo de 7 dias, remova:
+   ```sql
+   select cron.unschedule('purge_load_events');
+   ```
+3. **Env na Vercel:** adicionar `CRON_SECRET` (segredo forte). O Vercel Cron autentica automaticamente enviando `Authorization: Bearer ${CRON_SECRET}`.
+4. **Cron:** já configurado em `vercel.json` (`*/1 * * * *`). **Atenção:** no plano **Hobby** o cron da Vercel roda no máximo 1x/dia — para agregação de minuto em minuto, use plano **Pro** ou um cron externo (ex.: cron-job.org) chamando `/api/aggregate?secret=CRON_SECRET`.
+
+## Tag do GTM
+
+Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` por `INGEST_SECRET`. O `SAMPLE_RATE` controla a amostragem (10% = envia 1 em cada 10 carregamentos).
 
 ```html
 <script>
@@ -77,12 +94,9 @@ Criar uma tag do tipo **HTML personalizado** com o gatilho **Window Loaded**. Tr
     payload.downlink = navigator.connection.downlink || null;
   }
 
-  fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest', {
+  fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest?tenant=prospin', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-ingest-secret': 'SEU_SEGREDO_AQUI'
-    },
+    headers: { 'content-type': 'application/json', 'x-ingest-secret': 'SEU_SEGREDO_AQUI' },
     body: JSON.stringify(payload),
     keepalive: true
   }).catch(function() {});
@@ -90,70 +104,52 @@ Criar uma tag do tipo **HTML personalizado** com o gatilho **Window Loaded**. Tr
 </script>
 ```
 
-Usar sempre a **URL de produção** (acima) no `fetch` — nunca uma URL de deploy com hash, pois ela aponta para um deploy congelado.
+> O domínio de ingestão precisa estar no `connect-src` do CSP do site. Ver seção CSP.
 
-**Por que `fetch` com `keepalive` e não `sendBeacon`:** o `sendBeacon` não permite header customizado facilmente, e precisamos do `x-ingest-secret`. O `fetch` com `keepalive: true` envia mesmo durante o unload e permite headers.
-
-> O segredo fica visível no código da tag (é client-side). Ele reduz spam casual, não é barreira criptográfica. A proteção real é o RLS + `service_role` só no backend + validação de `ALLOWED_SITE`.
-
-### 3. Validar e publicar
-
-1. **Preview** no GTM → navegar no prospin → confirmar `200` no `/api/ingest` (aba Network) e o evento aparecendo no dashboard em tempo real.
-2. **Publish** o container no GTM.
-3. Limpar os eventos de teste (abaixo).
-
----
-
-## Testar a ingestão (curl)
-
-Substituir `SEU_SEGREDO` pelo valor de `INGEST_SECRET`. Resposta esperada: `{"ok":true}`.
+## Endpoints
 
 ```bash
-curl -X POST "https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest" \
+# Ingerir um evento
+curl -X POST "https://SEU-PROJETO.vercel.app/api/ingest?tenant=prospin" \
   -H "content-type: application/json" \
   -H "x-ingest-secret: SEU_SEGREDO" \
-  -d '{"site":"prospin.com.br","page_path":"/","load_time_ms":6200,"user_agent":"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"}'
+  -d '{"site":"prospin.com.br","page_path":"/","load_time_ms":6200,"user_agent":"Mozilla/5.0 (iPhone; ... Safari/604.1"}'
+
+# Rodar a agregação manualmente
+curl "https://SEU-PROJETO.vercel.app/api/aggregate?secret=SEU_CRON_SECRET"
+
+# Ler o resumo mais recente
+curl "https://SEU-PROJETO.vercel.app/api/summary?tenant=prospin&period=60m"
 ```
 
-Respostas de erro: `401` (segredo inválido), `403` (site diferente de `ALLOWED_SITE`), `405` (método diferente de POST).
+## Dashboard
 
-## Limpar dados de teste
+`/?tenant=prospin`. Foco em **percentuais e comparação**, não em lista de eventos.
 
-Antes de entrar tráfego real, zerar a tabela no **SQL Editor** do Supabase:
+- **Cards:** eventos, % lento+, % muito lento, load p95, TTFB médio, DOM Ready médio, iPhone % lento, pior agrupamento.
+- **Charts:** distribuição de performance, gargalo (TTFB vs DOM vs Load), % lento por página, por device/browser, iPhone vs demais, por conexão.
+- **Tabelas:** por página, device/browser, browser e OS.
+- **Filtros:** período (15m–24h), mínimo por grupo, filtro de página e device, auto-refresh (30s).
 
-```sql
-truncate table public.load_events;
-```
+Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenant (padrão 1 min).
 
----
+### Como interpretar
 
-## Como interpretar as métricas
-
-- **`load_time_ms`** — tempo total até o `load` da página. Métrica principal de "página pronta".
-- **`dom_ready_ms`** — tempo até o `DOMContentLoaded` (estrutura pronta, antes de imagens/recursos pesados).
-- **`ttfb_ms`** — *Time To First Byte*. TTFB alto indica lentidão de servidor/rede, não de frontend.
-- **p95** — 95% dos eventos carregaram nesse tempo ou menos. Melhor que a média para enxergar a cauda ruim.
-- **Eventos lentos** — `load_time_ms >= 5000` (5s). Experiência ruim.
-- **Eventos muito lentos** — `load_time_ms >= 10000` (10s). Experiência crítica.
-
-Para o objetivo do projeto, olhar o cruzamento **iPhone / Safari** com **p95** e **% lento** — é onde problemas de migração aparecem primeiro.
+- **`% lento ou muito lento`** — proporção de acessos com load ≥ `slow_threshold_ms`. Métrica principal.
+- **`% muito lento`** — load ≥ `very_slow_threshold_ms`. Experiência crítica.
+- **p95** — 95% dos acessos carregaram nesse tempo ou menos. Enxerga a cauda ruim.
+- **TTFB / DOM Ready / Load médios** — ajudam a localizar o gargalo (servidor vs frontend vs total).
+- **score** = `slowOrVerySlowPercent + verySlowPercent * 2` — ordena os piores grupos.
 
 ## Escala e custo
 
-O prospin tem volume alto (~2M carregamentos/mês, mais em campanhas). Duas medidas mantêm o custo previsível:
+- **Amostragem (10%)** na tag do GTM (`SAMPLE_RATE`). Amostragem uniforme: `p95`/`% lento` seguem corretos; números absolutos ficam em escala (×10 para o real).
+- **Retenção por tenant** (`retention_days`): `/api/aggregate` apaga eventos brutos antigos e snapshots com mais de 7 dias.
+- Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 
-- **Amostragem (10%)** — a tag do GTM só envia uma fração dos carregamentos (`SAMPLE_RATE = 0.10`). É amostragem **uniforme** (mesma taxa pra todos), então `p95`, `% lento` e médias continuam sendo estimativas corretas do total. Apenas os números **absolutos** ficam em escala — multiplique por `1/SAMPLE_RATE` (10x) para o volume real. Para ajustar, mude `SAMPLE_RATE` na tag e republique o container.
-- **Retenção (7 dias)** — um job `pg_cron` apaga eventos antigos todo dia às 3h, mantendo o storage estável. Rodar uma vez, no **SQL Editor** do Supabase:
+## Multi-cliente — isolamento de leitura (futuro)
 
-```sql
--- conteúdo de supabase/retention.sql
-```
-
-Para conferir o job agendado: `select * from cron.job;`. Para trocar a janela, reagende com outro `interval`.
-
-## Multi-cliente (futuro)
-
-O refactor para multi-tenant (tabela `clients`, segredo por cliente, isolamento de leitura por site via RLS/JWT, painel admin) está desenhado em [`docs/multi-tenant.md`](docs/multi-tenant.md). Enquanto o isolamento de leitura não existir, **o dashboard é interno da Linka** — não enviar link para clientes, pois o RLS atual deixa a anon key ler todos os sites.
+Hoje o dashboard/summary não isolam leitura por cliente via auth. O plano de isolamento (RLS/JWT por site, painel admin) está em [`docs/multi-tenant.md`](docs/multi-tenant.md). Enquanto não existir, o dashboard é **interno da Linka**.
 
 ## Desenvolvimento local
 
@@ -162,4 +158,4 @@ npm install
 vercel dev
 ```
 
-Dashboard em `http://localhost:3000`, API em `http://localhost:3000/api/ingest`. As variáveis de ambiente vêm do projeto vinculado na Vercel ou de um `.env` local (ver `.env.example`).
+Dashboard em `http://localhost:3000/?tenant=prospin`. As funções (`/api/*`) precisam das env vars (via `.env` local ou projeto vinculado na Vercel).
