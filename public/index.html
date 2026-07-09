@@ -43,7 +43,7 @@
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tenant</label>
           <input id="f-tenant" type="text" readonly
@@ -72,13 +72,21 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Página / path</label>
-          <input id="f-page" type="text" placeholder="filtrar…"
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
+          <select id="f-page" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
+            <option value="">Todas</option>
+          </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device / browser</label>
-          <input id="f-device" type="text" placeholder="filtrar…"
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device</label>
+          <select id="f-device" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Browser</label>
+          <select id="f-browser" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
+            <option value="">Todos</option>
+          </select>
         </div>
         <div class="flex items-center gap-2">
           <button id="f-refresh" class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">
@@ -229,19 +237,50 @@
     function sortGroups(groups) {
       return [...groups].sort((a, b) => (b.score - a.score) || (b.total - a.total));
     }
-    function filterGroups(groups, textFilter) {
+    function applyMin(groups) {
       const min = getMinGroup();
-      let g = (groups || []).filter(x => x.total >= min);
-      if (textFilter) {
-        const t = textFilter.toLowerCase();
-        g = g.filter(x => String(x.key).toLowerCase().includes(t));
-      }
-      return sortGroups(g);
+      return sortGroups((groups || []).filter(g => g.total >= min));
+    }
+    function deviceParts(key) {
+      const p = String(key).split(' / ');
+      return { dev: (p[0] || '').trim(), br: (p[1] || '').trim() };
+    }
+    function filterPages(groups) {
+      const pg = el('f-page').value;
+      return applyMin(groups).filter(g => !pg || g.key === pg);
+    }
+    function filterDevices(groups) {
+      const dv = el('f-device').value;
+      const br = el('f-browser').value;
+      return applyMin(groups).filter(g => {
+        const p = deviceParts(g.key);
+        return (!dv || p.dev === dv) && (!br || p.br === br);
+      });
+    }
+    function filterBrowsers(groups) {
+      const br = el('f-browser').value;
+      return applyMin(groups).filter(g => !br || g.key === br);
+    }
+
+    function syncSelect(id, values, allLabel) {
+      const sel = el(id);
+      const current = sel.value;
+      sel.innerHTML = '<option value="">' + allLabel + '</option>' +
+        values.map(v => '<option value="' + v + '">' + v + '</option>').join('');
+      if (values.includes(current)) sel.value = current;
+    }
+    function populateFilters(summary) {
+      const pages = [...new Set((summary.byPage || []).map(g => g.key))].sort();
+      const devices = [...new Set((summary.byDevice || []).map(g => deviceParts(g.key).dev).filter(Boolean))].sort();
+      const browsers = [...new Set((summary.byBrowser || []).map(g => g.key))].sort();
+      syncSelect('f-page', pages, 'Todas');
+      syncSelect('f-device', devices, 'Todos');
+      syncSelect('f-browser', browsers, 'Todos');
     }
 
     function getWorstGroup(summary) {
-      const pages = filterGroups(summary.byPage, el('f-page').value).map(g => ({ ...g, scope: 'página' }));
-      const devices = filterGroups(summary.byDevice, el('f-device').value).map(g => ({ ...g, scope: 'device' }));
+      const pages = filterPages(summary.byPage).map(g => ({ ...g, scope: 'página' }));
+      const devices = filterDevices(summary.byDevice).map(g => ({ ...g, scope: 'device' }));
       const all = pages.concat(devices);
       if (!all.length) return null;
       return sortGroups(all)[0];
@@ -285,9 +324,6 @@
       };
     }
 
-    function topGroups(groups, textFilter, n) {
-      return filterGroups(groups, textFilter).slice(0, n);
-    }
 
     function deviceCategories(byDevice) {
       const cats = { 'iPhone': [0, 0], 'Android': [0, 0], 'Desktop': [0, 0], 'Outros mobile': [0, 0] };
@@ -344,14 +380,14 @@
         options: baseOptions(false)
       });
 
-      const pg = topGroups(summary.byPage, el('f-page').value, 10);
+      const pg = filterPages(summary.byPage).slice(0, 10);
       charts.page = new Chart(el('chart-page'), {
         type: 'bar',
         data: { labels: pg.map(g => g.key), datasets: [{ label: '% lento+', data: pg.map(g => g.slowOrVerySlowPercent), backgroundColor: ACCENT }] },
         options: baseOptions(true)
       });
 
-      const dv = topGroups(summary.byDevice, el('f-device').value, 10);
+      const dv = filterDevices(summary.byDevice).slice(0, 10);
       charts.device = new Chart(el('chart-device'), {
         type: 'bar',
         data: { labels: dv.map(g => g.key), datasets: [{ label: '% lento+', data: dv.map(g => g.slowOrVerySlowPercent), backgroundColor: ACCENT }] },
@@ -365,7 +401,7 @@
         options: baseOptions(false)
       });
 
-      const cn = filterGroups(summary.byConnection, '');
+      const cn = applyMin(summary.byConnection);
       charts.conn = new Chart(el('chart-conn'), {
         type: 'bar',
         data: { labels: cn.map(g => g.key), datasets: [{ label: '% lento+', data: cn.map(g => g.slowOrVerySlowPercent), backgroundColor: ACCENT }] },
@@ -403,10 +439,10 @@
       el('th-browser').innerHTML = th(slimCols);
       el('th-os').innerHTML = th(slimCols);
 
-      const pages = filterGroups(summary.byPage, el('f-page').value);
-      const devices = filterGroups(summary.byDevice, el('f-device').value);
-      const browsers = filterGroups(summary.byBrowser, '');
-      const oses = filterGroups(summary.byOs, '');
+      const pages = filterPages(summary.byPage);
+      const devices = filterDevices(summary.byDevice);
+      const browsers = filterBrowsers(summary.byBrowser);
+      const oses = applyMin(summary.byOs);
 
       const fill = (id, list, fn, colspan) => {
         el(id).innerHTML = list.length ? list.map(fn).join('') :
@@ -469,6 +505,7 @@
         return;
       }
       hideEmpty();
+      populateFilters(summary);
       renderCards(summary);
       renderCharts(summary);
       renderTables(summary);
@@ -505,8 +542,7 @@
 
     el('f-period').addEventListener('change', fetchSummary);
     el('f-refresh').addEventListener('click', fetchSummary);
-    ['f-min', 'f-page', 'f-device'].forEach(id => el(id).addEventListener('input', () => { if (lastSummary) updateDashboard(lastSummary); }));
-    el('f-min').addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); });
+    ['f-min', 'f-page', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { if (lastSummary) updateDashboard(lastSummary); }));
 
     let timer = null;
     function setAutoRefresh() {
