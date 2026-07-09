@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Config de Tenants — Realtime Dash</title>
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme');
+      if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Rajdhani', 'ui-sans-serif', 'system-ui', 'sans-serif'] } } } };
+  </script>
+</head>
+<body class="font-sans bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+  <div class="max-w-5xl mx-auto p-4 sm:p-6">
+
+    <header class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Config de Tenants</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Realtime Dash — administração</p>
+      </div>
+      <button id="theme-toggle" aria-label="Alternar tema"
+        class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">
+        <span id="theme-icon">🌙</span>
+      </button>
+    </header>
+
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
+      <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Senha de administração (ADMIN_SECRET)</label>
+      <div class="flex gap-2">
+        <input id="admin-secret" type="password" class="flex-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-3 py-2 text-sm" placeholder="admin secret" />
+        <button id="load" class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">Carregar</button>
+      </div>
+      <p id="msg" class="text-sm mt-2"></p>
+    </section>
+
+    <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
+      <summary class="font-semibold cursor-pointer">+ Novo tenant</summary>
+      <div id="new-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3"></div>
+      <button id="create" class="mt-3 bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-emerald-700">Criar tenant</button>
+    </details>
+
+    <div id="list" class="space-y-4"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://realtime-dash-eric-9609s-projects.vercel.app';
+    const el = (id) => document.getElementById(id);
+
+    const FIELDS = [
+      { k: 'name', label: 'Nome', type: 'text' },
+      { k: 'site', label: 'Site', type: 'text' },
+      { k: 'allowed_domains', label: 'Domínios permitidos (vírgula)', type: 'text' },
+      { k: 'sample_rate', label: 'Sample rate (% ou fração)', type: 'number', step: 'any' },
+      { k: 'slow_threshold_ms', label: 'Limite lento (ms)', type: 'number' },
+      { k: 'very_slow_threshold_ms', label: 'Limite muito lento (ms)', type: 'number' },
+      { k: 'retention_days', label: 'Retenção (dias)', type: 'number' },
+      { k: 'aggregation_freshness_minutes', label: 'Freshness (min)', type: 'number' },
+      { k: 'min_group_size', label: 'Mínimo por grupo', type: 'number' },
+      { k: 'default_period_key', label: 'Período padrão', type: 'select', options: ['15m', '30m', '60m', '3h', '6h', '24h'] },
+      { k: 'timezone', label: 'Timezone', type: 'text' }
+    ];
+
+    function secret() { return el('admin-secret').value.trim(); }
+    function setMsg(text, ok) {
+      el('msg').textContent = text;
+      el('msg').className = 'text-sm mt-2 ' + (ok ? 'text-emerald-600' : 'text-red-500');
+    }
+
+    function inputHtml(f) {
+      const base = 'w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm';
+      if (f.type === 'select') {
+        return '<select data-field="' + f.k + '" class="' + base + '">' +
+          f.options.map(o => '<option value="' + o + '">' + o + '</option>').join('') + '</select>';
+      }
+      return '<input data-field="' + f.k + '" type="' + f.type + '"' + (f.step ? ' step="' + f.step + '"' : '') + ' class="' + base + '" />';
+    }
+
+    function fieldsGrid() {
+      return FIELDS.map(f =>
+        '<div><label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">' + f.label + '</label>' + inputHtml(f) + '</div>'
+      ).join('');
+    }
+
+    function setValues(scope, t) {
+      FIELDS.forEach(f => {
+        const inp = scope.querySelector('[data-field="' + f.k + '"]');
+        if (!inp) return;
+        let v = t[f.k];
+        if (f.k === 'allowed_domains' && Array.isArray(v)) v = v.join(', ');
+        inp.value = (v == null) ? '' : v;
+      });
+    }
+
+    function gather(scope) {
+      const obj = {};
+      FIELDS.forEach(f => {
+        const inp = scope.querySelector('[data-field="' + f.k + '"]');
+        if (inp) obj[f.k] = inp.value;
+      });
+      return obj;
+    }
+
+    function tenantCard(t) {
+      const card = document.createElement('div');
+      card.className = 'bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4';
+      card.innerHTML =
+        '<div class="flex items-center justify-between mb-3">' +
+          '<h2 class="font-bold">' + t.slug + '</h2>' +
+          '<label class="flex items-center gap-2 text-sm"><input type="checkbox" data-field="is_active" class="w-4 h-4" /> ativo</label>' +
+        '</div>' +
+        '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' + fieldsGrid() + '</div>' +
+        '<div class="mt-3">' +
+          '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Ingest token</label>' +
+          '<div class="flex gap-2">' +
+            '<input data-token type="text" readonly class="flex-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm font-mono" />' +
+            '<button data-copy class="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar</button>' +
+            '<button data-regen class="rounded-lg border border-amber-400 text-amber-600 dark:text-amber-400 px-3 py-1.5 text-sm hover:bg-amber-50 dark:hover:bg-slate-700">Regenerar</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mt-3 flex justify-end"><button data-save class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">Salvar</button></div>';
+
+      setValues(card, t);
+      card.querySelector('[data-field="is_active"]').checked = t.is_active !== false;
+      card.querySelector('[data-token]').value = t.ingest_token || '';
+
+      card.querySelector('[data-copy]').addEventListener('click', () => {
+        navigator.clipboard.writeText(t.ingest_token || '');
+        setMsg('Token copiado.', true);
+      });
+      card.querySelector('[data-regen]').addEventListener('click', () => {
+        if (confirm('Regenerar o token invalida a tag atual do cliente. Continuar?')) save(card, t.id, true);
+      });
+      card.querySelector('[data-save]').addEventListener('click', () => save(card, t.id, false));
+      return card;
+    }
+
+    async function save(scope, id, regenerate) {
+      const payload = gather(scope);
+      payload.id = id;
+      payload.is_active = scope.querySelector('[data-field="is_active"]').checked;
+      if (regenerate) payload.regenerate_token = true;
+      try {
+        const r = await fetch(API_BASE + '/api/tenants', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-admin-secret': secret() },
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if (!j.ok) { setMsg('Erro ao salvar: ' + (j.error || r.status), false); return; }
+        setMsg('Salvo.', true);
+        load();
+      } catch (e) { setMsg('Falha de conexão.', false); }
+    }
+
+    async function create() {
+      const payload = gather(el('new-form'));
+      payload.slug = (el('new-form').querySelector('[data-field="slug"]') || {}).value;
+      try {
+        const r = await fetch(API_BASE + '/api/tenants', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-admin-secret': secret() },
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if (!j.ok) { setMsg('Erro ao criar: ' + (j.error || r.status), false); return; }
+        setMsg('Tenant criado.', true);
+        load();
+      } catch (e) { setMsg('Falha de conexão.', false); }
+    }
+
+    async function load() {
+      if (!secret()) { setMsg('Informe a senha de administração.', false); return; }
+      localStorage.setItem('adminSecret', secret());
+      try {
+        const r = await fetch(API_BASE + '/api/tenants', { headers: { 'x-admin-secret': secret() } });
+        const j = await r.json();
+        if (!j.ok) { setMsg('Não autorizado.', false); return; }
+        const list = el('list');
+        list.innerHTML = '';
+        j.tenants.forEach(t => list.appendChild(tenantCard(t)));
+        setMsg(j.tenants.length + ' tenant(s) carregado(s).', true);
+      } catch (e) { setMsg('Falha de conexão.', false); }
+    }
+
+    function buildNewForm() {
+      el('new-form').innerHTML =
+        '<div><label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Slug (único)</label>' +
+        '<input data-field="slug" type="text" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm" /></div>' +
+        fieldsGrid();
+      el('new-form').querySelector('[data-field="default_period_key"]').value = '60m';
+    }
+
+    el('theme-toggle').addEventListener('click', () => {
+      const root = document.documentElement;
+      root.classList.toggle('dark');
+      localStorage.setItem('theme', root.classList.contains('dark') ? 'dark' : 'light');
+      el('theme-icon').textContent = root.classList.contains('dark') ? '☀️' : '🌙';
+    });
+    el('theme-icon').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+
+    el('load').addEventListener('click', load);
+    el('create').addEventListener('click', create);
+    buildNewForm();
+
+    const saved = localStorage.getItem('adminSecret');
+    if (saved) { el('admin-secret').value = saved; load(); }
+  </script>
+</body>
+</html>

@@ -42,16 +42,18 @@ Variáveis de ambiente na Vercel: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE
 - **`load_events`** — eventos brutos, com `tenant_id` obrigatório.
 - **`load_summary_snapshots`** — snapshots agregados por tenant/período, lidos pelo dashboard.
 
-### Criar um novo tenant
+### Criar / editar tenants (tela de admin)
 
-No SQL Editor do Supabase:
+Abra **`/admin.html`** (protegida por `ADMIN_SECRET`). Nela dá para criar tenants, editar toda a config (domínios, thresholds, sample rate, retenção, etc.), ver/copiar/regenerar o `ingest_token` e ativar/desativar. Requer a env var `ADMIN_SECRET` na Vercel.
+
+Alternativa via SQL:
 
 ```sql
 insert into public.tenants (slug, name, site, allowed_domains)
 values ('fisk', 'Fisk', 'fisk.com.br', array['fisk.com.br', 'www.fisk.com.br']);
 ```
 
-Depois use `?tenant=fisk` na ingestão e no dashboard. Os demais campos têm defaults sensatos e podem ser ajustados por `update`.
+Cada tenant tem um `ingest_token` (gerado automaticamente) usado na tag do GTM. O dashboard usa `?tenant=slug`.
 
 ## Setup / migração
 
@@ -79,7 +81,6 @@ O token identifica **e** autentica o cliente (não use `?tenant=slug`, que é ad
   if (!nav) return;
 
   var payload = {
-    site: 'prospin.com.br',
     page_location: location.href,
     page_path: location.pathname,
     sample_rate: SAMPLE_PERCENT,
