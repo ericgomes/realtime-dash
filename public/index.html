@@ -364,12 +364,27 @@
       return ['< 1s', '1–3s', '3–' + num(slow) + 's', num(slow) + '–' + num(very) + 's', '≥ ' + num(very) + 's'];
     }
 
-    function p95Chart(id, groups) {
+    function bucketColor(ms, t) {
+      if (ms == null) return BUCKET_COLORS[0];
+      const slow = (t && t.slowThresholdMs) || 5000;
+      const very = (t && t.verySlowThresholdMs) || 10000;
+      if (ms < 1000) return BUCKET_COLORS[0];
+      if (ms < 3000) return BUCKET_COLORS[1];
+      if (ms < slow) return BUCKET_COLORS[2];
+      if (ms < very) return BUCKET_COLORS[3];
+      return BUCKET_COLORS[4];
+    }
+
+    function p95Chart(id, groups, t) {
       return new Chart(el(id), {
         type: 'bar',
         data: {
           labels: groups.map(g => g.key),
-          datasets: [{ label: 'p95 (s)', data: groups.map(g => (g.p95LoadMs || 0) / 1000), backgroundColor: ACCENT }]
+          datasets: [{
+            label: 'p95 (s)',
+            data: groups.map(g => (g.p95LoadMs || 0) / 1000),
+            backgroundColor: groups.map(g => bucketColor(g.p95LoadMs, t))
+          }]
         },
         options: baseOptions(true)
       });
@@ -405,16 +420,16 @@
           datasets: [{
             label: 'Segundos',
             data: [(o.avgTtfbMs || 0) / 1000, (o.avgDomReadyMs || 0) / 1000, (o.avgLoadMs || 0) / 1000],
-            backgroundColor: ACCENT
+            backgroundColor: [bucketColor(o.avgTtfbMs, t), bucketColor(o.avgDomReadyMs, t), bucketColor(o.avgLoadMs, t)]
           }]
         },
         options: baseOptions(false)
       });
 
-      charts.page = p95Chart('chart-page', filterPages(summary.byPage).slice(0, 10));
-      charts.device = p95Chart('chart-device', filterDevices(summary.byDevice).slice(0, 10));
-      charts.os = p95Chart('chart-os', applyMin(summary.byOs));
-      charts.conn = p95Chart('chart-conn', applyMin(summary.byConnection));
+      charts.page = p95Chart('chart-page', filterPages(summary.byPage).slice(0, 10), t);
+      charts.device = p95Chart('chart-device', filterDevices(summary.byDevice).slice(0, 10), t);
+      charts.os = p95Chart('chart-os', applyMin(summary.byOs), t);
+      charts.conn = p95Chart('chart-conn', applyMin(summary.byConnection), t);
     }
 
     function th(cols) {
