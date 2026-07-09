@@ -65,7 +65,9 @@ Depois use `?tenant=fisk` na ingestão e no dashboard. Os demais campos têm def
 
 ## Tag do GTM
 
-Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI` por `INGEST_SECRET`. O `SAMPLE_PERCENT` controla a amostragem **em porcentagem** (ex.: `10` = 10%, `5` = 5%) e é enviado no payload para o backend estimar o total real.
+Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_TOKEN_DO_TENANT` pelo `ingest_token` do cliente (em `tenants.ingest_token`). O `SAMPLE_PERCENT` controla a amostragem **em porcentagem** (ex.: `10` = 10%, `5` = 5%) e é enviado no payload para o backend estimar o total real.
+
+O token identifica **e** autentica o cliente (não use `?tenant=slug`, que é adivinhável). Ele é por-cliente e revogável: para rotacionar, `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`.
 
 ```html
 <script>
@@ -95,9 +97,9 @@ Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI`
     payload.downlink = navigator.connection.downlink || null;
   }
 
-  fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest?tenant=prospin', {
+  fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-ingest-secret': 'SEU_SEGREDO_AQUI' },
+    headers: { 'content-type': 'application/json', 'x-ingest-token': 'SEU_TOKEN_DO_TENANT' },
     body: JSON.stringify(payload),
     keepalive: true
   }).catch(function() {});
@@ -110,10 +112,10 @@ Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_SEGREDO_AQUI`
 ## Endpoints
 
 ```bash
-# Ingerir um evento
-curl -X POST "https://SEU-PROJETO.vercel.app/api/ingest?tenant=prospin" \
+# Ingerir um evento (token do tenant identifica e autentica)
+curl -X POST "https://SEU-PROJETO.vercel.app/api/ingest" \
   -H "content-type: application/json" \
-  -H "x-ingest-secret: SEU_SEGREDO" \
+  -H "x-ingest-token: SEU_TOKEN_DO_TENANT" \
   -d '{"site":"prospin.com.br","page_path":"/","load_time_ms":6200,"user_agent":"Mozilla/5.0 (iPhone; ... Safari/604.1"}'
 
 # Rodar a agregação manualmente

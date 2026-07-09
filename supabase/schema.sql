@@ -14,6 +14,7 @@ create table if not exists public.tenants (
   slow_threshold_ms integer not null default 5000,
   very_slow_threshold_ms integer not null default 10000,
   sample_rate numeric not null default 0.10,
+  ingest_token text unique,
   timezone text not null default 'America/Sao_Paulo',
   storage_mode text not null default 'shared',
   created_at timestamptz not null default now(),
@@ -21,6 +22,11 @@ create table if not exists public.tenants (
 );
 
 alter table public.tenants add column if not exists sample_rate numeric not null default 0.10;
+alter table public.tenants add column if not exists ingest_token text unique;
+
+update public.tenants
+set ingest_token = 'ing_' || encode(gen_random_bytes(20), 'hex')
+where ingest_token is null;
 
 create index if not exists tenants_slug_idx on public.tenants (slug);
 create index if not exists tenants_active_idx on public.tenants (is_active);
