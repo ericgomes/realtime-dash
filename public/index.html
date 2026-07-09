@@ -129,49 +129,69 @@
         </div>
       </section>
 
-      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <h2 class="text-lg font-bold mb-3">Visão geral</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Distribuição por tempo de carregamento</h2>
+          <h3 class="font-semibold mb-3">Distribuição por tempo de carregamento</h3>
           <div class="h-64"><canvas id="chart-dist"></canvas></div>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Tempos médios (TTFB · DOM · Load)</h2>
+          <h3 class="font-semibold mb-3">Tempos médios (TTFB · DOM · Load)</h3>
           <div class="h-64"><canvas id="chart-bottleneck"></canvas></div>
         </div>
+      </section>
+
+      <h2 class="text-lg font-bold mb-3">Páginas</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Load p95 por página</h2>
+          <h3 class="font-semibold mb-3">Load p95 por página</h3>
           <div class="h-64"><canvas id="chart-page"></canvas></div>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Load p95 por device / browser</h2>
+          <h3 class="font-semibold mb-3">Detalhes por página</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-page" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-page"></tbody></table></div>
+        </div>
+      </section>
+
+      <h2 class="text-lg font-bold mb-3">Devices &amp; Browsers</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Load p95 por device / browser</h3>
           <div class="h-64"><canvas id="chart-device"></canvas></div>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Load p95 por conexão</h2>
-          <div class="h-64"><canvas id="chart-conn"></canvas></div>
+          <h3 class="font-semibold mb-3">Detalhes por device / browser</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-device" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-device"></tbody></table></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 lg:col-span-2">
+          <h3 class="font-semibold mb-3">Detalhes por browser</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-browser" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-browser"></tbody></table></div>
         </div>
       </section>
 
-      <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-        <h2 class="font-semibold mb-3">Performance por página</h2>
-        <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-page" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-page"></tbody></table></div>
-      </section>
-
-      <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-        <h2 class="font-semibold mb-3">Performance por device / browser</h2>
-        <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-device" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-device"></tbody></table></div>
-      </section>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Performance por browser</h2>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-browser" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-browser"></tbody></table></div>
-        </section>
-        <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h2 class="font-semibold mb-3">Performance por OS</h2>
+      <h2 class="text-lg font-bold mb-3">OS</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Load p95 por OS</h3>
+          <div class="h-64"><canvas id="chart-os"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Detalhes por OS</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-os" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-os"></tbody></table></div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <h2 class="text-lg font-bold mb-3">Conexão</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Load p95 por conexão</h3>
+          <div class="h-64"><canvas id="chart-conn"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Detalhes por conexão</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-conn" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-conn"></tbody></table></div>
+        </div>
+      </section>
     </div>
 
     <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-sm leading-relaxed">
@@ -393,6 +413,7 @@
 
       charts.page = p95Chart('chart-page', filterPages(summary.byPage).slice(0, 10));
       charts.device = p95Chart('chart-device', filterDevices(summary.byDevice).slice(0, 10));
+      charts.os = p95Chart('chart-os', applyMin(summary.byOs));
       charts.conn = p95Chart('chart-conn', applyMin(summary.byConnection));
     }
 
@@ -426,11 +447,13 @@
       el('th-device').innerHTML = th(fullCols);
       el('th-browser').innerHTML = th(slimCols);
       el('th-os').innerHTML = th(slimCols);
+      el('th-conn').innerHTML = th(slimCols);
 
       const pages = filterPages(summary.byPage);
       const devices = filterDevices(summary.byDevice);
       const browsers = filterBrowsers(summary.byBrowser);
       const oses = applyMin(summary.byOs);
+      const conns = applyMin(summary.byConnection);
 
       const fill = (id, list, fn, colspan) => {
         el(id).innerHTML = list.length ? list.map(fn).join('') :
@@ -440,6 +463,7 @@
       fill('tb-device', devices, rowFull, 8);
       fill('tb-browser', browsers, rowSlim, 5);
       fill('tb-os', oses, rowSlim, 5);
+      fill('tb-conn', conns, rowSlim, 5);
     }
 
     function renderCards(summary) {
