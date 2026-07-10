@@ -162,16 +162,15 @@
         </div>
       </section>
 
-      <h2 class="text-lg font-bold mb-3">Páginas</h2>
+      <h2 class="text-lg font-bold mb-3">OS</h2>
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h3 class="font-semibold mb-3">Load p95 por página</h3>
-          <div class="h-64"><canvas id="chart-page"></canvas></div>
+          <h3 class="font-semibold mb-3">Load p95 por OS</h3>
+          <div class="h-64"><canvas id="chart-os"></canvas></div>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h3 class="font-semibold mb-3">Detalhes por página</h3>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-page" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-page"></tbody></table></div>
-          <div id="page-pagination" class="flex items-center justify-between gap-3 mt-3 text-sm"></div>
+          <h3 class="font-semibold mb-3">Detalhes por OS</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-os" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-os"></tbody></table></div>
         </div>
       </section>
 
@@ -199,18 +198,6 @@
         </div>
       </section>
 
-      <h2 class="text-lg font-bold mb-3">OS</h2>
-      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h3 class="font-semibold mb-3">Load p95 por OS</h3>
-          <div class="h-64"><canvas id="chart-os"></canvas></div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h3 class="font-semibold mb-3">Detalhes por OS</h3>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-os" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-os"></tbody></table></div>
-        </div>
-      </section>
-
       <h2 class="text-lg font-bold mb-3">Conexão</h2>
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
@@ -220,6 +207,19 @@
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
           <h3 class="font-semibold mb-3">Detalhes por conexão</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-conn" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-conn"></tbody></table></div>
+        </div>
+      </section>
+
+      <h2 class="text-lg font-bold mb-3">Páginas</h2>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Load p95 por página</h3>
+          <div class="h-64"><canvas id="chart-page"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
+          <h3 class="font-semibold mb-3">Detalhes por página</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-page" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-page"></tbody></table></div>
+          <div id="page-pagination" class="flex items-center justify-between gap-3 mt-3 text-sm"></div>
         </div>
       </section>
     </div>
@@ -373,7 +373,7 @@
       const ageSec = Math.round((Date.now() - new Date(s.generatedAt).getTime()) / 1000);
       const ageTxt = ageSec < 90 ? ageSec + 's' : Math.round(ageSec / 60) + ' min';
       el('h-status').textContent =
-        'Dados agregados · última atualização há ' + ageTxt + ' · janela: últimos ' + (PERIOD_LABELS[s.periodKey] || s.periodMinutes + ' min');
+        'Snapshot agregado há ' + ageTxt + ' · janela: últimos ' + (PERIOD_LABELS[s.periodKey] || s.periodMinutes + ' min');
     }
 
     function themeColors() {
@@ -385,6 +385,28 @@
     }
     const BUCKET_COLORS = ['#16a34a', '#84cc16', '#eab308', '#f97316', '#dc2626'];
     const ACCENT = '#3b82f6';
+    const PHASE_COLORS = ['#0ea5e9', '#6366f1', '#14b8a6'];
+
+    const doughnutLabels = {
+      id: 'doughnutLabels',
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        const data = chart.data.datasets[0].data;
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Rajdhani, ui-sans-serif, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        meta.data.forEach((arc, i) => {
+          const v = Number(data[i]) || 0;
+          if (v < 4) return;
+          const pos = arc.getCenterPoint();
+          ctx.fillText(v.toFixed(0) + '%', pos.x, pos.y);
+        });
+        ctx.restore();
+      }
+    };
 
     function destroyCharts() {
       Object.values(charts).forEach(c => { try { c.destroy(); } catch (e) {} });
@@ -446,6 +468,7 @@
 
       charts.dist = new Chart(el('chart-dist'), {
         type: 'doughnut',
+        plugins: [doughnutLabels],
         data: {
           labels: bucketLabels(t),
           datasets: [{
@@ -462,17 +485,31 @@
         }
       });
 
+      const ttfbS = (o.avgTtfbMs || 0) / 1000;
+      const domPhase = Math.max(0, (o.avgDomReadyMs || 0) - (o.avgTtfbMs || 0)) / 1000;
+      const loadPhase = Math.max(0, (o.avgLoadMs || 0) - (o.avgDomReadyMs || 0)) / 1000;
+      const tcB = themeColors();
       charts.bottleneck = new Chart(el('chart-bottleneck'), {
         type: 'bar',
         data: {
-          labels: ['TTFB', 'DOM Ready', 'Load'],
-          datasets: [{
-            label: 'Segundos',
-            data: [(o.avgTtfbMs || 0) / 1000, (o.avgDomReadyMs || 0) / 1000, (o.avgLoadMs || 0) / 1000],
-            backgroundColor: [bucketColor(o.avgTtfbMs, t), bucketColor(o.avgDomReadyMs, t), bucketColor(o.avgLoadMs, t)]
-          }]
+          labels: ['Tempo médio'],
+          datasets: [
+            { label: 'TTFB', data: [ttfbS], backgroundColor: PHASE_COLORS[0] },
+            { label: 'DOM Ready', data: [domPhase], backgroundColor: PHASE_COLORS[1] },
+            { label: 'Load', data: [loadPhase], backgroundColor: PHASE_COLORS[2] }
+          ]
         },
-        options: baseOptions(false)
+        options: {
+          responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          plugins: {
+            legend: { labels: { color: tcB.text } },
+            tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + Number(c.raw).toFixed(2) + 's' } }
+          },
+          scales: {
+            x: { stacked: true, ticks: { color: tcB.text }, grid: { color: tcB.grid }, title: { display: true, text: 'segundos', color: tcB.text } },
+            y: { stacked: true, ticks: { color: tcB.text }, grid: { color: tcB.grid } }
+          }
+        }
       });
 
       charts.page = p95Chart('chart-page', filterPages(summary.byPage).slice(0, 10), t);
