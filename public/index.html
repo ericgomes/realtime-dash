@@ -278,9 +278,9 @@
       p.set('min', el('f-min').value);
       const page = el('f-page').value.trim();
       if (page) p.set('page', page);
-      const os = getChecked('f-os'); if (os.length) p.set('os', os.join(','));
-      const dv = getChecked('f-device'); if (dv.length) p.set('devices', dv.join(','));
-      const br = getChecked('f-browser'); if (br.length) p.set('browsers', br.join(','));
+      const os = checkedSubset('f-os'); if (os) p.set('os', os.join(','));
+      const dv = checkedSubset('f-device'); if (dv) p.set('devices', dv.join(','));
+      const br = checkedSubset('f-browser'); if (br) p.set('browsers', br.join(','));
       history.replaceState(null, '', location.pathname + '?' + p.toString());
     }
     function readUrlFilters() {
@@ -356,6 +356,11 @@
     function getChecked(id) {
       return Array.from(el(id).querySelectorAll('input:checked')).map(i => i.getAttribute('data-val'));
     }
+    function checkedSubset(id) {
+      const total = el(id).querySelectorAll('input').length;
+      const sel = getChecked(id);
+      return (sel.length && sel.length < total) ? sel : null;
+    }
     function filterDevices(groups) {
       const sel = getChecked('f-device');
       return applyMin(groups).filter(g => !sel.length || sel.includes(g.key));
@@ -371,11 +376,16 @@
 
     function renderChecks(id, values) {
       const container = el(id);
-      const current = new Set(getChecked(id));
-      if (pendingFilters && pendingFilters[id]) pendingFilters[id].forEach(v => current.add(v));
+      let checkedSet;
+      if (pendingFilters) {
+        const fromUrl = pendingFilters[id] || [];
+        checkedSet = new Set(fromUrl.length ? fromUrl : values);
+      } else {
+        checkedSet = new Set(getChecked(id));
+      }
       container.innerHTML = values.length
         ? values.map(v => '<label class="inline-flex items-center gap-1 text-sm cursor-pointer">' +
-            '<input type="checkbox" data-val="' + v + '" class="w-4 h-4"' + (current.has(v) ? ' checked' : '') + ' /> ' + v + '</label>').join('')
+            '<input type="checkbox" data-val="' + v + '" class="w-4 h-4"' + (checkedSet.has(v) ? ' checked' : '') + ' /> ' + v + '</label>').join('')
         : '<span class="text-xs text-slate-400">—</span>';
       container.querySelectorAll('input').forEach(inp => inp.addEventListener('change', onFilterChange));
     }
