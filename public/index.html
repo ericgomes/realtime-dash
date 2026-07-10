@@ -181,11 +181,11 @@
 
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h3 class="font-semibold mb-3">Load p95 por <span class="text-lg font-bold">device / browser</span></h3>
+          <h3 class="font-semibold mb-3">Load p95 por <span class="text-lg font-bold">device</span></h3>
           <div class="h-64"><canvas id="chart-device"></canvas></div>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-          <h3 class="font-semibold mb-3">Detalhes por device / browser</h3>
+          <h3 class="font-semibold mb-3">Detalhes por device</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead id="th-device" class="text-left text-slate-500 dark:text-slate-400 border-b dark:border-slate-700"></thead><tbody id="tb-device"></tbody></table></div>
         </div>
       </section>
@@ -329,10 +329,6 @@
       const min = getMinGroup();
       return sortGroups((groups || []).filter(g => g.total >= min));
     }
-    function deviceParts(key) {
-      const p = String(key).split(' / ');
-      return { dev: (p[0] || '').trim(), br: (p[1] || '').trim() };
-    }
     function filterPages(groups) {
       const q = el('f-page').value.trim().toLowerCase();
       let g = applyMin(groups);
@@ -341,11 +337,7 @@
     }
     function filterDevices(groups) {
       const dv = el('f-device').value;
-      const br = el('f-browser').value;
-      return applyMin(groups).filter(g => {
-        const p = deviceParts(g.key);
-        return (!dv || p.dev === dv) && (!br || p.br === br);
-      });
+      return applyMin(groups).filter(g => !dv || g.key === dv);
     }
     function filterBrowsers(groups) {
       const br = el('f-browser').value;
@@ -366,7 +358,7 @@
     function populateFilters(summary) {
       const pageKeys = sortGroups(summary.byPage || []).map(g => g.key);
       el('f-page-list').innerHTML = pageKeys.map(k => '<option value="' + k + '"></option>').join('');
-      const devices = [...new Set((summary.byDevice || []).map(g => deviceParts(g.key).dev).filter(Boolean))].sort();
+      const devices = [...new Set((summary.byDevice || []).map(g => g.key).filter(Boolean))].sort();
       const browsers = [...new Set((summary.byBrowser || []).map(g => g.key))].sort();
       const oses = [...new Set((summary.byOs || []).map(g => g.key))].sort();
       syncSelect('f-device', devices, 'Todos');

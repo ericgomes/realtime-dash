@@ -144,7 +144,7 @@ module.exports = async (req, res) => {
         windowEnd: windowEnd.toISOString(),
         overall,
         byPage: groupRanking(events, e => e.page_path, tenant),
-        byDevice: groupRanking(events, e => e.device_label, tenant),
+        byDevice: groupRanking(events, e => (String(e.device_label || '').split(' / ')[0].trim()) || 'Outro', tenant),
         byBrowser: groupRanking(events, e => e.browser, tenant),
         byOs: groupRanking(events, e => e.os, tenant),
         byConnection: groupRanking(events, e => e.effective_type || 'unknown', tenant)
