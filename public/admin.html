@@ -159,7 +159,7 @@
           body: JSON.stringify(payload)
         });
         const j = await r.json();
-        if (!j.ok) { setMsg('Erro ao salvar: ' + (j.error || r.status), false); return; }
+        if (!j.ok) { setMsg('Erro ao salvar: ' + (j.detail || j.error || r.status), false); return; }
         setMsg('Salvo.', true);
         load();
       } catch (e) { setMsg('Falha de conexão.', false); }
@@ -175,7 +175,7 @@
           body: JSON.stringify(payload)
         });
         const j = await r.json();
-        if (!j.ok) { setMsg('Erro ao criar: ' + (j.error || r.status), false); return; }
+        if (!j.ok) { setMsg('Erro ao criar: ' + (j.detail || j.error || r.status), false); return; }
         setMsg('Tenant criado.', true);
         load();
       } catch (e) { setMsg('Falha de conexão.', false); }
