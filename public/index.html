@@ -355,11 +355,18 @@
       syncSelect('f-os', oses, 'Todos');
     }
 
+    function fmtAge(sec) {
+      if (sec < 60) return sec + ' seg';
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return s ? (m + ' min e ' + s + ' seg') : (m + ' min');
+    }
+
     function setStatus() {
       if (!lastSummary) { el('h-status').textContent = ''; return; }
       const s = lastSummary;
       const ageSec = Math.round((Date.now() - new Date(s.generatedAt).getTime()) / 1000);
-      const ageTxt = ageSec < 90 ? ageSec + 's' : Math.round(ageSec / 60) + ' min';
+      const ageTxt = fmtAge(ageSec);
       el('h-status').textContent =
         'Snapshot agregado há ' + ageTxt + ' · janela: últimos ' + (PERIOD_LABELS[s.periodKey] || s.periodMinutes + ' min');
     }
