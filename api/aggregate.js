@@ -174,6 +174,11 @@ module.exports = async (req, res) => {
       if (!insErr) {
         generated++;
         results.push({ tenant: tenant.slug, period: p.key, total: overall.total });
+        await supabase.from('load_summary_snapshots')
+          .delete()
+          .eq('tenant_id', tenant.id)
+          .eq('period_key', p.key)
+          .lt('generated_at', payload.generatedAt);
       }
     }
 
@@ -181,9 +186,6 @@ module.exports = async (req, res) => {
     const cutoff = new Date(now - retHours * 3600000).toISOString();
     await supabase.from('load_events').delete().eq('tenant_id', tenant.id).lt('created_at', cutoff);
   }
-
-  const snapCutoff = new Date(now - 7 * 86400000).toISOString();
-  await supabase.from('load_summary_snapshots').delete().lt('generated_at', snapCutoff);
 
   res.status(200).json({ ok: true, generated, skipped, results });
 };
