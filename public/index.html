@@ -65,8 +65,6 @@
             <option value="30m">Últimos 30 min</option>
             <option value="60m">Últimos 60 min</option>
             <option value="3h">Últimas 3h</option>
-            <option value="6h">Últimas 6h</option>
-            <option value="24h">Últimas 24h</option>
           </select>
         </div>
         <div>
@@ -253,7 +251,7 @@
   <script>
     const API_BASE = 'https://realtime-dash-eric-9609s-projects.vercel.app';
     const REFRESH_MS = 30000;
-    const PERIOD_LABELS = { '15m': '15 min', '30m': '30 min', '60m': '60 min', '3h': '3h', '6h': '6h', '24h': '24h' };
+    const PERIOD_LABELS = { '15m': '15 min', '30m': '30 min', '60m': '60 min', '3h': '3h' };
 
     const el = (id) => document.getElementById(id);
     let lastSummary = null;

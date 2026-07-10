@@ -133,7 +133,7 @@ curl "https://SEU-PROJETO.vercel.app/api/summary?tenant=prospin&period=60m"
 - **Cards:** eventos, load médio, load p95, TTFB médio, DOM Ready médio, % ≥ 5s, % ≥ 10s (os limites vêm dos thresholds do tenant).
 - **Charts:** distribuição por tempo de carregamento, tempos médios (TTFB/DOM/Load), load p95 por página, por device/browser e por conexão.
 - **Tabelas:** por página, device/browser, browser e OS (ordenadas por p95).
-- **Filtros:** período (15m–24h), mínimo por grupo, e selects de página, device e browser (populados com os valores reais). Atualização automática (30s) + cron.
+- **Filtros:** período (15m–3h), mínimo por grupo, busca de página e selects de device e browser (populados com os valores reais). Atualização automática (30s) + cron.
 
 A apresentação é neutra: o dashboard mostra tempos e distribuições factuais (faixas de tempo), sem rotular acessos como "lentos".
 
@@ -151,7 +151,7 @@ Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenan
 
 - **Amostragem na tag do GTM** (`SAMPLE_PERCENT`, em %, padrão 10), enviada no payload como `sample_rate`. Reduz invocações da Vercel **e** storage. O backend aceita o valor em % (>1) ou fração (≤1) e normaliza; guarda a taxa efetiva por evento e estima o total real somando `1/taxa`. O dashboard mostra a amostra e a estimativa.
 - **Rede de segurança:** `tenants.sample_rate` é um **teto** por cliente (também aceita % ou fração). Se um evento chegar sem amostragem (ex.: removeram o `SAMPLE_PERCENT` da tag), o `/api/ingest` re-amostra no servidor até esse teto — protegendo o custo mesmo com erro no GTM.
-- **Retenção por tenant** (`retention_days`): `/api/aggregate` apaga eventos brutos antigos e snapshots com mais de 7 dias.
+- **Retenção por tenant** (`retention_hours`, padrão **3h**): é um monitor ao vivo, não um histórico (o GA4 cobre o passado). O `/api/aggregate` descarta eventos brutos com mais de 3h. Por isso os períodos vão só até 3h.
 - Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 
 ## Multi-cliente — isolamento de leitura (futuro)

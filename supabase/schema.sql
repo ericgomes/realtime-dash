@@ -7,7 +7,7 @@ create table if not exists public.tenants (
   site text not null,
   allowed_domains text[] not null default '{}',
   is_active boolean not null default true,
-  retention_days integer not null default 30,
+  retention_hours numeric not null default 3,
   aggregation_freshness_minutes integer not null default 1,
   default_period_key text not null default '60m',
   min_group_size integer not null default 5,
@@ -23,6 +23,7 @@ create table if not exists public.tenants (
 
 alter table public.tenants add column if not exists sample_rate numeric not null default 0.10;
 alter table public.tenants add column if not exists ingest_token text unique;
+alter table public.tenants add column if not exists retention_hours numeric not null default 3;
 
 update public.tenants
 set ingest_token = 'ing_' || encode(gen_random_bytes(20), 'hex')
@@ -33,13 +34,13 @@ create index if not exists tenants_active_idx on public.tenants (is_active);
 
 insert into public.tenants (
   slug, name, site, allowed_domains,
-  retention_days, aggregation_freshness_minutes, default_period_key,
+  retention_hours, aggregation_freshness_minutes, default_period_key,
   min_group_size, slow_threshold_ms, very_slow_threshold_ms, timezone, storage_mode
 )
 values (
   'prospin', 'Pró Spin', 'prospin.com.br',
   array['prospin.com.br', 'www.prospin.com.br'],
-  30, 1, '60m', 5, 5000, 10000, 'America/Sao_Paulo', 'shared'
+  3, 1, '60m', 5, 5000, 10000, 'America/Sao_Paulo', 'shared'
 )
 on conflict (slug) do update set
   name = excluded.name,

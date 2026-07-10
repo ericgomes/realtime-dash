@@ -5,9 +5,7 @@ const PERIODS = [
   { key: '15m', minutes: 15 },
   { key: '30m', minutes: 30 },
   { key: '60m', minutes: 60 },
-  { key: '3h', minutes: 180 },
-  { key: '6h', minutes: 360 },
-  { key: '24h', minutes: 1440 }
+  { key: '3h', minutes: 180 }
 ];
 
 function normRate(v) {
@@ -179,7 +177,8 @@ module.exports = async (req, res) => {
       }
     }
 
-    const cutoff = new Date(now - tenant.retention_days * 86400000).toISOString();
+    const retHours = (typeof tenant.retention_hours === 'number' && tenant.retention_hours > 0) ? tenant.retention_hours : 3;
+    const cutoff = new Date(now - retHours * 3600000).toISOString();
     await supabase.from('load_events').delete().eq('tenant_id', tenant.id).lt('created_at', cutoff);
   }
 

@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
       site: body.site,
       allowed_domains: toDomains(body.allowed_domains),
       is_active: body.is_active !== false,
-      retention_days: toInt(body.retention_days, 30),
+      retention_hours: toNum(body.retention_hours, 3),
       aggregation_freshness_minutes: toInt(body.aggregation_freshness_minutes, 1),
       default_period_key: body.default_period_key || '60m',
       min_group_size: toInt(body.min_group_size, 5),

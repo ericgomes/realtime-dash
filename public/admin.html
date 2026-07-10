@@ -66,10 +66,10 @@
       { k: 'sample_rate', label: 'Sample rate (% ou fração)', type: 'number', step: 'any' },
       { k: 'slow_threshold_ms', label: 'Limite lento (ms)', type: 'number' },
       { k: 'very_slow_threshold_ms', label: 'Limite muito lento (ms)', type: 'number' },
-      { k: 'retention_days', label: 'Retenção (dias)', type: 'number' },
+      { k: 'retention_hours', label: 'Retenção (horas)', type: 'number', step: 'any' },
       { k: 'aggregation_freshness_minutes', label: 'Freshness (min)', type: 'number' },
       { k: 'min_group_size', label: 'Mínimo por grupo', type: 'number' },
-      { k: 'default_period_key', label: 'Período padrão', type: 'select', options: ['15m', '30m', '60m', '3h', '6h', '24h'] },
+      { k: 'default_period_key', label: 'Período padrão', type: 'select', options: ['15m', '30m', '60m', '3h'] },
       { k: 'timezone', label: 'Timezone', type: 'text' }
     ];
 
