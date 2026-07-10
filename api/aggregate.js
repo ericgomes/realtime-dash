@@ -32,7 +32,7 @@ async function fetchEvents(supabase, tenantId, startISO, endISO) {
   while (true) {
     const { data, error } = await supabase
       .from('load_events')
-      .select('load_time_ms,ttfb_ms,dom_ready_ms,page_path,device_label,browser,os,effective_type,is_iphone,sample_rate')
+      .select('load_time_ms,ttfb_ms,dom_ready_ms,page_path,device_label,browser,os,effective_type,is_iphone,sample_rate,prerendered')
       .eq('tenant_id', tenantId)
       .gte('created_at', startISO)
       .lte('created_at', endISO)
@@ -62,9 +62,12 @@ function overallStats(events, tenant) {
     estimatedTotal += 1 / r;
   }
 
+  const prerendered = events.filter(e => e.prerendered).length;
+
   return {
     total: g.total,
     estimatedTotal: Math.round(estimatedTotal),
+    prerenderedPercent: pct(prerendered, g.total),
     veryFastPercent: g.veryFastPercent,
     fastPercent: g.fastPercent,
     okPercent: g.okPercent,

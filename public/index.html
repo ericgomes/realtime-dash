@@ -115,7 +115,7 @@
     <div id="content">
       <div class="mb-5">
         <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Pageviews</div>
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 text-center">
             <div class="text-xs text-slate-500 dark:text-slate-400">Page views no período</div>
             <div id="c-count" class="text-xl font-bold">—</div>
@@ -130,6 +130,11 @@
             <div class="text-xs text-slate-500 dark:text-slate-400">Page views / min</div>
             <div id="c-per-min" class="text-xl font-bold">—</div>
             <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 text-center">
+            <div class="text-xs text-slate-500 dark:text-slate-400">% pré-renderizado</div>
+            <div id="c-prerender" class="text-xl font-bold">—</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">fora dos tempos de load</div>
           </div>
         </section>
       </div>
@@ -672,6 +677,7 @@
       const periodMin = summary.periodMinutes || 60;
       el('c-per-hour').textContent = formatNumber(Math.round(est * 60 / periodMin));
       el('c-per-min').textContent = formatNumber(Math.round(est / periodMin));
+      el('c-prerender').textContent = formatPercent(o.prerenderedPercent);
       const exp = el('exp-sample');
       if (exp) exp.textContent = Math.round(rate * 100) + '%';
       el('c-avg').textContent = formatSeconds2(o.avgLoadMs);

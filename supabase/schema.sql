@@ -78,6 +78,7 @@ create table if not exists public.load_events (
   is_slow boolean,
   is_very_slow boolean,
   sample_rate numeric,
+  prerendered boolean,
   raw jsonb
 );
 
@@ -86,6 +87,9 @@ add column if not exists tenant_id uuid references public.tenants(id);
 
 alter table public.load_events
 add column if not exists sample_rate numeric;
+
+alter table public.load_events
+add column if not exists prerendered boolean;
 
 update public.load_events
 set tenant_id = (select id from public.tenants where slug = 'prospin')
