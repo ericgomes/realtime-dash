@@ -26,9 +26,9 @@ GTM (site) --> POST /api/ingest?tenant=slug --> load_events (bruto, com tenant_i
 
 | Recurso | Onde |
 |---|---|
-| Dashboard | https://realtime-dash-eric-9609s-projects.vercel.app/?tenant=prospin |
-| Ingestão | https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest?tenant=prospin |
-| Summary | https://realtime-dash-eric-9609s-projects.vercel.app/api/summary?tenant=prospin&period=60m |
+| Dashboard | https://realtime-dash-eric-9609s-projects.vercel.app/?token=&lt;view_token&gt; (link no /admin.html) |
+| Ingestão | https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest (header x-ingest-token) |
+| Summary | https://realtime-dash-eric-9609s-projects.vercel.app/api/summary?token=&lt;view_token&gt;&period=60m |
 | Repositório | https://github.com/ericgomes/realtime-dash |
 | Banco | Supabase (projeto `qbrjymubcwzboyhtjafd`) |
 
@@ -53,7 +53,7 @@ insert into public.tenants (slug, name, site, allowed_domains)
 values ('fisk', 'Fisk', 'fisk.com.br', array['fisk.com.br', 'www.fisk.com.br']);
 ```
 
-Cada tenant tem um `ingest_token` (gerado automaticamente) usado na tag do GTM. O dashboard usa `?tenant=slug`.
+Cada tenant tem `ingest_token` (tag do GTM) e `view_token` (link do dashboard), gerados automaticamente. O dashboard é aberto pelo link `/?token=<view_token>` (copie no `/admin.html`).
 
 ## Setup / migração
 
@@ -128,7 +128,7 @@ curl "https://SEU-PROJETO.vercel.app/api/summary?tenant=prospin&period=60m"
 
 ## Dashboard
 
-`/?tenant=prospin`. Foco em **percentuais e comparação**, não em lista de eventos.
+Aberto pelo link com token: `/?token=<view_token>` (copie no `/admin.html`). Foco em **percentuais e comparação**, não em lista de eventos.
 
 - **Cards:** page views no período (+ estimativa real), page views/hora e /min (velocidade estimada), load médio, load p95, TTFB médio, DOM Ready médio (2 casas decimais), % ≥ 5s, % ≥ 10s (limites do tenant). "Page view" = um carregamento de página (window load).
 - **Charts:** distribuição por tempo de carregamento, tempos médios (TTFB/DOM/Load), load p95 por página, por device/browser e por conexão.
@@ -154,9 +154,11 @@ Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenan
 - **Retenção por tenant** (`retention_hours`, padrão **3h**): é um monitor ao vivo, não um histórico (o GA4 cobre o passado). O `/api/aggregate` descarta eventos brutos com mais de 3h. Por isso os períodos vão só até 3h.
 - Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 
-## Multi-cliente — isolamento de leitura (futuro)
+## Multi-cliente — isolamento de leitura
 
-Hoje o dashboard/summary não isolam leitura por cliente via auth. O plano de isolamento (RLS/JWT por site, painel admin) está em [`docs/multi-tenant.md`](docs/multi-tenant.md). Enquanto não existir, o dashboard é **interno da Linka**.
+O dashboard **isola por cliente via `view_token`**: a URL é `/?token=<view_token>` (não `?tenant=slug`), e o `/api/summary` resolve o cliente pelo token — sem token válido, não retorna nada, e não dá pra adivinhar outro cliente. Como o frontend lê **apenas** via `/api/summary` (não acessa o Supabase direto) e a leitura anon de `load_events` foi removida, isso já é isolamento real, sem precisar de RLS/JWT no cliente.
+
+Cada tenant tem `ingest_token` (escrita, na tag do GTM) e `view_token` (leitura, no link do dashboard), separados e revogáveis no `/admin.html`. Pegue o link pronto de cada cliente no card do `/admin.html` ("Link do dashboard").
 
 ## Desenvolvimento local
 

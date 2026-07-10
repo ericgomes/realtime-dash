@@ -1,5 +1,5 @@
 const { getServiceClient } = require('../lib/supabase');
-const { resolveTenant } = require('../lib/tenants');
+const { resolveTenantByViewToken } = require('../lib/tenants');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,11 +10,16 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') { res.status(405).json({ ok: false, error: 'method_not_allowed' }); return; }
 
   const q = req.query || {};
-  const slug = String(q.tenant || 'prospin').toLowerCase();
+  const token = q.token;
   const period = String(q.period || '60m');
 
+  if (!token) {
+    res.status(200).json({ ok: false, message: 'No summary available' });
+    return;
+  }
+
   const supabase = getServiceClient();
-  const tenant = await resolveTenant(supabase, slug);
+  const tenant = await resolveTenantByViewToken(supabase, token);
   if (!tenant) {
     res.status(200).json({ ok: false, message: 'No summary available' });
     return;

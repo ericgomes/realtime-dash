@@ -272,9 +272,8 @@
     let pagesPage = 1;
     const PAGE_TABLE_SIZE = 15;
 
-    function getTenantFromUrl() {
-      const p = new URLSearchParams(location.search);
-      return (p.get('tenant') || 'prospin').toLowerCase();
+    function getToken() {
+      return new URLSearchParams(location.search).get('token') || '';
     }
 
     function getSelectedPeriod() { return el('f-period').value; }
@@ -635,7 +634,7 @@
       }
 
       el('h-subtitle').innerHTML = '<span class="text-xl font-bold text-slate-800 dark:text-slate-100">' +
-        (t.site || getTenantFromUrl()) + '</span>' +
+        (t.site || t.name || '') + '</span>' +
         '<span class="text-sm text-slate-500 dark:text-slate-400"> · monitoramento em tempo real</span>';
 
       if (!summary.overall || !summary.overall.total) {
@@ -652,13 +651,17 @@
     }
 
     async function fetchSummary() {
-      const tenant = getTenantFromUrl();
+      const token = getToken();
       const period = getSelectedPeriod();
+      if (!token) {
+        showEmpty('Link sem token de acesso.', 'Abra o dashboard pelo link do cliente (com ?token=...).');
+        return;
+      }
       try {
-        const r = await fetch(API_BASE + '/api/summary?tenant=' + encodeURIComponent(tenant) + '&period=' + encodeURIComponent(period));
+        const r = await fetch(API_BASE + '/api/summary?token=' + encodeURIComponent(token) + '&period=' + encodeURIComponent(period));
         const j = await r.json();
         if (!j.ok) {
-          showEmpty('Ainda não há resumo gerado para este tenant/período.', 'Rode /api/aggregate ou aguarde o próximo cron.');
+          showEmpty('Sem dados para este link.', 'Token inválido ou ainda sem page views no período.');
           return;
         }
         updateDashboard(j.summary);

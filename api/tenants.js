@@ -24,8 +24,8 @@ async function readBody(req) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-function newToken() {
-  return 'ing_' + crypto.randomBytes(20).toString('hex');
+function newToken(prefix) {
+  return prefix + crypto.randomBytes(20).toString('hex');
 }
 
 function toDomains(v) {
@@ -82,7 +82,8 @@ module.exports = async (req, res) => {
     };
 
     if (body.id) {
-      if (body.regenerate_token) fields.ingest_token = newToken();
+      if (body.regenerate_token) fields.ingest_token = newToken('ing_');
+      if (body.regenerate_view_token) fields.view_token = newToken('view_');
       const { data, error } = await supabase.from('tenants').update(fields).eq('id', body.id).select().maybeSingle();
       if (error) { res.status(500).json({ ok: false, error: 'update_failed', detail: error.message }); return; }
       res.status(200).json({ ok: true, tenant: data });
@@ -94,7 +95,8 @@ module.exports = async (req, res) => {
       return;
     }
     fields.slug = String(body.slug).toLowerCase();
-    fields.ingest_token = newToken();
+    fields.ingest_token = newToken('ing_');
+    fields.view_token = newToken('view_');
     const { data, error } = await supabase.from('tenants').insert(fields).select().maybeSingle();
     if (error) { res.status(500).json({ ok: false, error: 'insert_failed', detail: error.message }); return; }
     res.status(200).json({ ok: true, tenant: data });
