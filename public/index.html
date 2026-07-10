@@ -61,7 +61,7 @@
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Período</label>
           <select id="f-period" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
@@ -82,10 +82,10 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Página / path</label>
-          <input id="f-page" list="f-page-list" type="text" placeholder="buscar página…"
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
-          <datalist id="f-page-list"></datalist>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OS</label>
+          <select id="f-os" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
+            <option value="">Todos</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device</label>
@@ -98,6 +98,12 @@
           <select id="f-browser" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
             <option value="">Todos</option>
           </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Página / path</label>
+          <input id="f-page" list="f-page-list" type="text" placeholder="buscar página…"
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
+          <datalist id="f-page-list"></datalist>
         </div>
       </div>
     </section>
@@ -351,6 +357,10 @@
       const br = el('f-browser').value;
       return applyMin(groups).filter(g => !br || g.key === br);
     }
+    function filterOs(groups) {
+      const os = el('f-os').value;
+      return applyMin(groups).filter(g => !os || g.key === os);
+    }
 
     function syncSelect(id, values, allLabel) {
       const sel = el(id);
@@ -364,8 +374,10 @@
       el('f-page-list').innerHTML = pageKeys.map(k => '<option value="' + k + '"></option>').join('');
       const devices = [...new Set((summary.byDevice || []).map(g => deviceParts(g.key).dev).filter(Boolean))].sort();
       const browsers = [...new Set((summary.byBrowser || []).map(g => g.key))].sort();
+      const oses = [...new Set((summary.byOs || []).map(g => g.key))].sort();
       syncSelect('f-device', devices, 'Todos');
       syncSelect('f-browser', browsers, 'Todos');
+      syncSelect('f-os', oses, 'Todos');
     }
 
     function setStatus() {
@@ -516,7 +528,7 @@
       charts.page = p95Chart('chart-page', filterPages(summary.byPage).slice(0, 10), t);
       charts.device = p95Chart('chart-device', filterDevices(summary.byDevice).slice(0, 10), t);
       charts.browser = p95Chart('chart-browser', filterBrowsers(summary.byBrowser), t);
-      charts.os = p95Chart('chart-os', applyMin(summary.byOs), t);
+      charts.os = p95Chart('chart-os', filterOs(summary.byOs), t);
       charts.conn = p95Chart('chart-conn', applyMin(summary.byConnection), t);
     }
 
@@ -555,7 +567,7 @@
       const pages = filterPages(summary.byPage);
       const devices = filterDevices(summary.byDevice);
       const browsers = filterBrowsers(summary.byBrowser);
-      const oses = applyMin(summary.byOs);
+      const oses = filterOs(summary.byOs);
       const conns = applyMin(summary.byConnection);
 
       const fill = (id, list, fn, colspan) => {
@@ -710,7 +722,7 @@
       clearTimeout(pageSearchTimer);
       pageSearchTimer = setTimeout(() => { if (lastSummary) updateDashboard(lastSummary); }, 200);
     });
-    ['f-min', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { pagesPage = 1; if (lastSummary) updateDashboard(lastSummary); }));
+    ['f-min', 'f-os', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { pagesPage = 1; if (lastSummary) updateDashboard(lastSummary); }));
     el('f-period').addEventListener('change', () => { pagesPage = 1; refreshNow(); });
 
     el('f-period').value = '60m';
