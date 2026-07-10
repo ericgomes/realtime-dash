@@ -228,40 +228,30 @@
       <summary class="text-lg font-bold cursor-pointer">Sobre este dashboard e métricas</summary>
       <div class="mt-3">
       <p class="text-slate-600 dark:text-slate-300 mb-4">
-        Mostra a performance de carregamento medida em <strong>usuários reais</strong> (RUM), coletada pelo navegador via GTM.
-        Cada <strong>page view</strong> é um carregamento de página (evento window load). Os dados são <strong>amostrados</strong>
-        (uma fração dos page views) e consolidados em resumos por período. A leitura é neutra: apresenta tempos e distribuições,
-        sem rotular acessos como bons ou ruins.
-      </p>
-      <p class="text-slate-600 dark:text-slate-300 mb-4">
-        É um <strong>monitor ao vivo</strong>: mantém apenas as <strong>últimas 3 horas</strong>. Page views mais antigos são
-        descartados automaticamente — o histórico de longo prazo fica no GA4. Por isso os períodos vão só até 3h.
+        Monitor <strong>ao vivo</strong> da velocidade de carregamento com <strong>usuários reais</strong> (RUM), coletado via GTM.
+        Cada <strong>page view</strong> é um carregamento de página. Mostra apenas as <strong>últimas 3 horas</strong>
+        (o histórico fica no GA4) e apresenta os dados de forma neutra: tempos e distribuições, sem julgar.
       </p>
 
-      <h3 class="font-semibold mb-2">Métricas</h3>
-      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-slate-600 dark:text-slate-300 mb-4">
-        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">TTFB (Time To First Byte)</dt>
-          <dd>Tempo entre a requisição e o primeiro byte da resposta. Reflete servidor e rede, antes do frontend renderizar.</dd></div>
+      <h3 class="font-semibold mb-2">Métricas de tempo</h3>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-slate-600 dark:text-slate-300 mb-4">
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">TTFB</dt>
+          <dd>Resposta do servidor (primeiro byte) — indica rede/backend.</dd></div>
         <div><dt class="font-semibold text-slate-800 dark:text-slate-100">DOM Ready</dt>
-          <dd>Tempo até a estrutura da página ficar pronta (DOMContentLoaded), antes de imagens e recursos pesados.</dd></div>
+          <dd>Estrutura da página pronta, antes de imagens pesadas.</dd></div>
         <div><dt class="font-semibold text-slate-800 dark:text-slate-100">Load</dt>
-          <dd>Tempo total até a página terminar de carregar (loadEventEnd). É o tempo de "página pronta".</dd></div>
-        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">Média</dt>
-          <dd>Soma dividida pela quantidade de acessos. Sensível a valores extremos.</dd></div>
-        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">p75 / p95 (percentis)</dt>
-          <dd>p95 = 95% dos acessos carregaram nesse tempo ou menos. Descreve a cauda (os acessos mais demorados) melhor que a média.</dd></div>
-        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">% ≥ 5s / % ≥ 10s</dt>
-          <dd>Proporção de acessos acima desses tempos. Os limites são configuráveis por cliente.</dd></div>
-        <div class="sm:col-span-2"><dt class="font-semibold text-slate-800 dark:text-slate-100">Distribuição por tempo de carregamento</dt>
-          <dd>Como os acessos se dividem entre faixas de tempo (ex.: &lt; 3s, 3–5s, 5–10s, ≥ 10s).</dd></div>
+          <dd>Página totalmente carregada (o tempo "página pronta").</dd></div>
+        <div><dt class="font-semibold text-slate-800 dark:text-slate-100">p95</dt>
+          <dd>95% dos page views carregaram nesse tempo ou menos — enxerga os piores casos melhor que a média.</dd></div>
+        <div class="sm:col-span-2"><dt class="font-semibold text-slate-800 dark:text-slate-100">Faixas de tempo</dt>
+          <dd>Como os page views se dividem (&lt; 1s … ≥ 10s). Os limites das faixas são configuráveis por cliente.</dd></div>
       </dl>
 
-      <h3 class="font-semibold mb-2">Observações</h3>
+      <h3 class="font-semibold mb-2">Como ler os números</h3>
       <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300 space-y-1">
-        <li><strong>Amostragem:</strong> apenas uma fração dos page views é registrada (taxa atual: <span id="exp-sample" class="font-semibold text-slate-800 dark:text-slate-100">—</span>, configurável por cliente). Os percentuais e percentis representam o todo; o card "Page views no período" mostra a amostra e a estimativa de page views reais (amostra ÷ taxa), além da velocidade estimada por hora e por minuto.</li>
-        <li><strong>Retenção:</strong> só as últimas 3 horas ficam no banco; o mais antigo é apagado a cada ciclo de agregação.</li>
-        <li><strong>Dados agregados:</strong> atualizam periodicamente (não são page view a page view). O horário de atualização e a janela aparecem no topo.</li>
-        <li>Datas e horários no fuso de São Paulo.</li>
+        <li><strong>Amostragem:</strong> registramos ~<span id="exp-sample" class="font-semibold text-slate-800 dark:text-slate-100">—</span> dos page views. Os <strong>percentuais e o p95 valem para o todo</strong>; os cards de volume mostram a amostra e estimam o total real (amostra ÷ taxa).</li>
+        <li><strong>Volume:</strong> as tabelas priorizam as páginas mais acessadas. Páginas com menos de 3 page views não entram; use o "mínimo de page views" para focar no que tem tráfego.</li>
+        <li>Dados agregados a cada ~1 min · horários no fuso de São Paulo.</li>
       </ul>
       </div>
     </details>
