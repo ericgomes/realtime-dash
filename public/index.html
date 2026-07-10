@@ -42,6 +42,10 @@
         <p id="h-status" class="text-xs text-slate-400 dark:text-slate-500 mt-1"></p>
       </div>
       <div class="flex items-center gap-3">
+        <div class="text-right leading-tight">
+          <div id="clock-time" class="text-lg font-bold tabular-nums text-slate-900 dark:text-white">--:--:--</div>
+          <div id="clock-date" class="text-xs text-slate-500 dark:text-slate-400">--</div>
+        </div>
         <div class="relative w-9 h-9" title="Próxima atualização dos dados">
           <svg class="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
             <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-slate-200 dark:text-slate-700" />
@@ -271,6 +275,15 @@
     function formatSeconds(ms) {
       if (ms == null || isNaN(ms)) return '—';
       return (Number(ms) / 1000).toFixed(1) + 's';
+    }
+    function formatSeconds2(ms) {
+      if (ms == null || isNaN(ms)) return '—';
+      return (Number(ms) / 1000).toFixed(2) + 's';
+    }
+    function updateClock() {
+      const now = new Date();
+      el('clock-time').textContent = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      el('clock-date').textContent = now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
     }
     function formatPercent(v) {
       if (v == null || isNaN(v)) return '—';
@@ -536,10 +549,10 @@
         : 'amostra ' + Math.round(rate * 100) + '%';
       const exp = el('exp-sample');
       if (exp) exp.textContent = Math.round(rate * 100) + '%';
-      el('c-avg').textContent = formatSeconds(o.avgLoadMs);
-      el('c-p95').textContent = formatSeconds(o.p95LoadMs);
-      el('c-ttfb').textContent = formatSeconds(o.avgTtfbMs);
-      el('c-dom').textContent = formatSeconds(o.avgDomReadyMs);
+      el('c-avg').textContent = formatSeconds2(o.avgLoadMs);
+      el('c-p95').textContent = formatSeconds2(o.p95LoadMs);
+      el('c-ttfb').textContent = formatSeconds2(o.avgTtfbMs);
+      el('c-dom').textContent = formatSeconds2(o.avgDomReadyMs);
       el('c-slow').textContent = formatPercent(o.slowOrVerySlowPercent);
       el('c-vslow').textContent = formatPercent(o.verySlowPercent);
     }
@@ -634,6 +647,7 @@
       secsLeft -= 1;
       if (secsLeft <= 0) { fetchSummary(); secsLeft = REFRESH_SEC; }
       updateRefreshRing();
+      updateClock();
       setStatus();
     }
 
@@ -649,6 +663,7 @@
     el('f-period').value = '60m';
     fetchSummary();
     updateRefreshRing();
+    updateClock();
     setInterval(tick, 1000);
   </script>
 </body>
