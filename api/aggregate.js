@@ -143,7 +143,7 @@ module.exports = async (req, res) => {
         windowStart: windowStart.toISOString(),
         windowEnd: windowEnd.toISOString(),
         overall,
-        byPage: groupRanking(events, e => e.page_path, tenant),
+        byPage: groupRanking(events, e => e.page_path, tenant).filter(g => g.total >= 3),
         byDevice: groupRanking(events, e => (String(e.device_label || '').split(' / ')[0].trim()) || 'Outro', tenant),
         byBrowser: groupRanking(events, e => e.browser, tenant),
         byOs: groupRanking(events, e => e.os, tenant),
