@@ -77,33 +77,38 @@ O token identifica **e** autentica o cliente (não use `?tenant=slug`, que é ad
   var SAMPLE_PERCENT = 10;
   if (Math.random() * 100 >= SAMPLE_PERCENT) return;
 
-  var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-  if (!nav) return;
+  setTimeout(function() {
+    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    if (!nav || !nav.loadEventEnd) return;
 
-  var payload = {
-    page_location: location.href,
-    page_path: location.pathname,
-    sample_rate: SAMPLE_PERCENT,
-    load_time_ms: Math.round(nav.loadEventEnd - nav.startTime),
-    dom_ready_ms: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
-    ttfb_ms: Math.round(nav.responseStart - nav.requestStart),
-    user_agent: navigator.userAgent,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    timestamp: new Date().toISOString()
-  };
+    var act = nav.activationStart || 0;
 
-  if (navigator.connection) {
-    payload.effective_type = navigator.connection.effectiveType || null;
-    payload.downlink = navigator.connection.downlink || null;
-  }
+    var payload = {
+      page_location: location.href,
+      page_path: location.pathname,
+      sample_rate: SAMPLE_PERCENT,
+      prerendered: act > 0,
+      load_time_ms: Math.max(0, Math.round(nav.loadEventEnd - act)),
+      dom_ready_ms: Math.max(0, Math.round(nav.domContentLoadedEventEnd - act)),
+      ttfb_ms: Math.round(nav.responseStart - nav.requestStart),
+      user_agent: navigator.userAgent,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      timestamp: new Date().toISOString()
+    };
 
-  fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-ingest-token': 'SEU_TOKEN_DO_TENANT' },
-    body: JSON.stringify(payload),
-    keepalive: true
-  }).catch(function() {});
+    if (navigator.connection) {
+      payload.effective_type = navigator.connection.effectiveType || null;
+      payload.downlink = navigator.connection.downlink || null;
+    }
+
+    fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-ingest-token': 'SEU_TOKEN_DO_TENANT' },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(function() {});
+  }, 0);
 })();
 </script>
 ```
