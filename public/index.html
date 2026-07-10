@@ -87,7 +87,7 @@
           <datalist id="f-page-list"></datalist>
         </div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OS</div>
           <div id="f-os" class="flex flex-wrap gap-x-3 gap-y-1"></div>
@@ -99,6 +99,10 @@
         <div>
           <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Browsers</div>
           <div id="f-browser" class="flex flex-wrap gap-x-3 gap-y-1"></div>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Conexões</div>
+          <div id="f-conn" class="flex flex-wrap gap-x-3 gap-y-1"></div>
         </div>
       </div>
     </section>
@@ -281,6 +285,7 @@
       const os = checkedSubset('f-os'); if (os) p.set('os', os.join(','));
       const dv = checkedSubset('f-device'); if (dv) p.set('devices', dv.join(','));
       const br = checkedSubset('f-browser'); if (br) p.set('browsers', br.join(','));
+      const cn = checkedSubset('f-conn'); if (cn) p.set('conns', cn.join(','));
       history.replaceState(null, '', location.pathname + '?' + p.toString());
     }
     function readUrlFilters() {
@@ -291,13 +296,14 @@
       pendingFilters = {
         'f-os': (p.get('os') || '').split(',').filter(Boolean),
         'f-device': (p.get('devices') || '').split(',').filter(Boolean),
-        'f-browser': (p.get('browsers') || '').split(',').filter(Boolean)
+        'f-browser': (p.get('browsers') || '').split(',').filter(Boolean),
+        'f-conn': (p.get('conns') || '').split(',').filter(Boolean)
       };
     }
     function onFilterChange() {
       pagesPage = 1;
       syncUrl();
-      if (lastSummary) updateDashboard(lastSummary);
+      renderView();
     }
 
     function getToken() {
@@ -373,6 +379,10 @@
       const sel = getChecked('f-os');
       return applyMin(groups).filter(g => !sel.length || sel.includes(g.key));
     }
+    function filterConnection(groups) {
+      const sel = getChecked('f-conn');
+      return applyMin(groups).filter(g => !sel.length || sel.includes(g.key));
+    }
 
     function renderChecks(id, values) {
       const container = el(id);
@@ -395,9 +405,11 @@
       const devices = [...new Set((summary.byDevice || []).map(g => g.key).filter(Boolean))].sort();
       const browsers = [...new Set((summary.byBrowser || []).map(g => g.key))].sort();
       const oses = [...new Set((summary.byOs || []).map(g => g.key))].sort();
+      const conns = [...new Set((summary.byConnection || []).map(g => g.key))].sort();
       renderChecks('f-device', devices);
       renderChecks('f-browser', browsers);
       renderChecks('f-os', oses);
+      renderChecks('f-conn', conns);
       pendingFilters = null;
     }
 
@@ -557,7 +569,7 @@
       charts.device = p95Chart('chart-device', filterDevices(summary.byDevice).slice(0, 10), t);
       charts.browser = p95Chart('chart-browser', filterBrowsers(summary.byBrowser), t);
       charts.os = p95Chart('chart-os', filterOs(summary.byOs), t);
-      charts.conn = p95Chart('chart-conn', applyMin(summary.byConnection), t);
+      charts.conn = p95Chart('chart-conn', filterConnection(summary.byConnection), t);
     }
 
     function th(cols) {
@@ -596,7 +608,7 @@
       const devices = filterDevices(summary.byDevice);
       const browsers = filterBrowsers(summary.byBrowser);
       const oses = filterOs(summary.byOs);
-      const conns = applyMin(summary.byConnection);
+      const conns = filterConnection(summary.byConnection);
 
       const fill = (id, list, fn, colspan) => {
         el(id).innerHTML = list.length ? list.map(fn).join('') :
@@ -691,11 +703,16 @@
       }
       hideEmpty();
       populateFilters(summary);
-      renderCards(summary);
-      renderCharts(summary);
-      renderTables(summary);
-      setStatus();
+      renderView();
       syncUrl();
+    }
+
+    function renderView() {
+      if (!lastSummary) return;
+      renderCards(lastSummary);
+      renderCharts(lastSummary);
+      renderTables(lastSummary);
+      setStatus();
     }
 
     async function fetchSummary() {
@@ -755,9 +772,9 @@
     el('f-page').addEventListener('input', () => {
       pagesPage = 1;
       clearTimeout(pageSearchTimer);
-      pageSearchTimer = setTimeout(() => { syncUrl(); if (lastSummary) updateDashboard(lastSummary); }, 200);
+      pageSearchTimer = setTimeout(() => { syncUrl(); renderView(); }, 200);
     });
-    el('f-min').addEventListener('change', () => { pagesPage = 1; syncUrl(); if (lastSummary) updateDashboard(lastSummary); });
+    el('f-min').addEventListener('change', () => { pagesPage = 1; syncUrl(); renderView(); });
     el('f-period').addEventListener('change', () => { pagesPage = 1; syncUrl(); refreshNow(); });
 
     el('f-period').value = '60m';
