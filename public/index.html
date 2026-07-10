@@ -61,7 +61,7 @@
     </header>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 items-end mb-4">
         <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Período</label>
           <select id="f-period" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
@@ -81,28 +81,24 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OS</label>
-          <select id="f-os" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Device</label>
-          <select id="f-device" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Browser</label>
-          <select id="f-browser" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <div>
           <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Página / path</label>
           <input id="f-page" list="f-page-list" type="text" placeholder="buscar página…"
             class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm" />
           <datalist id="f-page-list"></datalist>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OS</div>
+          <div id="f-os" class="flex flex-wrap gap-x-3 gap-y-1"></div>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Devices</div>
+          <div id="f-device" class="flex flex-wrap gap-x-3 gap-y-1"></div>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Browsers</div>
+          <div id="f-browser" class="flex flex-wrap gap-x-3 gap-y-1"></div>
         </div>
       </div>
     </section>
@@ -270,7 +266,39 @@
     let charts = {};
     let defaultApplied = false;
     let pagesPage = 1;
+    let pendingFilters = null;
+    let urlApplied = { period: false, min: false };
     const PAGE_TABLE_SIZE = 15;
+
+    function syncUrl() {
+      const p = new URLSearchParams();
+      const token = getToken();
+      if (token) p.set('token', token);
+      p.set('period', getSelectedPeriod());
+      p.set('min', el('f-min').value);
+      const page = el('f-page').value.trim();
+      if (page) p.set('page', page);
+      const os = getChecked('f-os'); if (os.length) p.set('os', os.join(','));
+      const dv = getChecked('f-device'); if (dv.length) p.set('devices', dv.join(','));
+      const br = getChecked('f-browser'); if (br.length) p.set('browsers', br.join(','));
+      history.replaceState(null, '', location.pathname + '?' + p.toString());
+    }
+    function readUrlFilters() {
+      const p = new URLSearchParams(location.search);
+      if (p.get('period') && ['15m', '30m', '60m', '3h'].includes(p.get('period'))) { el('f-period').value = p.get('period'); urlApplied.period = true; }
+      if (p.get('min')) { el('f-min').value = p.get('min'); urlApplied.min = true; }
+      if (p.get('page')) el('f-page').value = p.get('page');
+      pendingFilters = {
+        'f-os': (p.get('os') || '').split(',').filter(Boolean),
+        'f-device': (p.get('devices') || '').split(',').filter(Boolean),
+        'f-browser': (p.get('browsers') || '').split(',').filter(Boolean)
+      };
+    }
+    function onFilterChange() {
+      pagesPage = 1;
+      syncUrl();
+      if (lastSummary) updateDashboard(lastSummary);
+    }
 
     function getToken() {
       return new URLSearchParams(location.search).get('token') || '';
@@ -325,25 +353,31 @@
       if (q) g = g.filter(x => String(x.key).toLowerCase().includes(q));
       return g;
     }
+    function getChecked(id) {
+      return Array.from(el(id).querySelectorAll('input:checked')).map(i => i.getAttribute('data-val'));
+    }
     function filterDevices(groups) {
-      const dv = el('f-device').value;
-      return applyMin(groups).filter(g => !dv || g.key === dv);
+      const sel = getChecked('f-device');
+      return applyMin(groups).filter(g => !sel.length || sel.includes(g.key));
     }
     function filterBrowsers(groups) {
-      const br = el('f-browser').value;
-      return applyMin(groups).filter(g => !br || g.key === br);
+      const sel = getChecked('f-browser');
+      return applyMin(groups).filter(g => !sel.length || sel.includes(g.key));
     }
     function filterOs(groups) {
-      const os = el('f-os').value;
-      return applyMin(groups).filter(g => !os || g.key === os);
+      const sel = getChecked('f-os');
+      return applyMin(groups).filter(g => !sel.length || sel.includes(g.key));
     }
 
-    function syncSelect(id, values, allLabel) {
-      const sel = el(id);
-      const current = sel.value;
-      sel.innerHTML = '<option value="">' + allLabel + '</option>' +
-        values.map(v => '<option value="' + v + '">' + v + '</option>').join('');
-      if (values.includes(current)) sel.value = current;
+    function renderChecks(id, values) {
+      const container = el(id);
+      const current = new Set(getChecked(id));
+      if (pendingFilters && pendingFilters[id]) pendingFilters[id].forEach(v => current.add(v));
+      container.innerHTML = values.length
+        ? values.map(v => '<label class="inline-flex items-center gap-1 text-sm cursor-pointer">' +
+            '<input type="checkbox" data-val="' + v + '" class="w-4 h-4"' + (current.has(v) ? ' checked' : '') + ' /> ' + v + '</label>').join('')
+        : '<span class="text-xs text-slate-400">—</span>';
+      container.querySelectorAll('input').forEach(inp => inp.addEventListener('change', onFilterChange));
     }
     function populateFilters(summary) {
       const pageKeys = sortGroups(summary.byPage || []).map(g => g.key);
@@ -351,9 +385,10 @@
       const devices = [...new Set((summary.byDevice || []).map(g => g.key).filter(Boolean))].sort();
       const browsers = [...new Set((summary.byBrowser || []).map(g => g.key))].sort();
       const oses = [...new Set((summary.byOs || []).map(g => g.key))].sort();
-      syncSelect('f-device', devices, 'Todos');
-      syncSelect('f-browser', browsers, 'Todos');
-      syncSelect('f-os', oses, 'Todos');
+      renderChecks('f-device', devices);
+      renderChecks('f-browser', browsers);
+      renderChecks('f-os', oses);
+      pendingFilters = null;
     }
 
     function fmtAge(sec) {
@@ -622,14 +657,16 @@
 
       if (!defaultApplied) {
         defaultApplied = true;
-        if (t.minGroupSize && ['1', '3', '5', '10', '20'].includes(String(t.minGroupSize))) {
+        if (!urlApplied.min && t.minGroupSize && ['3', '5', '10', '20'].includes(String(t.minGroupSize))) {
           el('f-min').value = String(t.minGroupSize);
         }
-        const dp = t.defaultPeriodKey || '60m';
-        if (dp !== getSelectedPeriod() && PERIOD_LABELS[dp]) {
-          el('f-period').value = dp;
-          fetchSummary();
-          return;
+        if (!urlApplied.period) {
+          const dp = t.defaultPeriodKey || '60m';
+          if (dp !== getSelectedPeriod() && PERIOD_LABELS[dp]) {
+            el('f-period').value = dp;
+            fetchSummary();
+            return;
+          }
         }
       }
 
@@ -648,6 +685,7 @@
       renderCharts(summary);
       renderTables(summary);
       setStatus();
+      syncUrl();
     }
 
     async function fetchSummary() {
@@ -707,12 +745,13 @@
     el('f-page').addEventListener('input', () => {
       pagesPage = 1;
       clearTimeout(pageSearchTimer);
-      pageSearchTimer = setTimeout(() => { if (lastSummary) updateDashboard(lastSummary); }, 200);
+      pageSearchTimer = setTimeout(() => { syncUrl(); if (lastSummary) updateDashboard(lastSummary); }, 200);
     });
-    ['f-min', 'f-os', 'f-device', 'f-browser'].forEach(id => el(id).addEventListener('change', () => { pagesPage = 1; if (lastSummary) updateDashboard(lastSummary); }));
-    el('f-period').addEventListener('change', () => { pagesPage = 1; refreshNow(); });
+    el('f-min').addEventListener('change', () => { pagesPage = 1; syncUrl(); if (lastSummary) updateDashboard(lastSummary); });
+    el('f-period').addEventListener('change', () => { pagesPage = 1; syncUrl(); refreshNow(); });
 
     el('f-period').value = '60m';
+    readUrlFilters();
     fetchSummary();
     updateRefreshRing();
     updateClock();
