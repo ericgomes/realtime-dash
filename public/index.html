@@ -319,7 +319,7 @@
     }
 
     function sortGroups(groups) {
-      return [...groups].sort((a, b) => ((b.p95LoadMs || 0) - (a.p95LoadMs || 0)) || (b.total - a.total));
+      return [...groups].sort((a, b) => (b.total - a.total) || ((b.p95LoadMs || 0) - (a.p95LoadMs || 0)));
     }
     function sLabel(ms) {
       const s = ms / 1000;
