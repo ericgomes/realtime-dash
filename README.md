@@ -130,7 +130,7 @@ curl "https://SEU-PROJETO.vercel.app/api/summary?tenant=prospin&period=60m"
 
 `/?tenant=prospin`. Foco em **percentuais e comparação**, não em lista de eventos.
 
-- **Cards:** eventos, load médio, load p95, TTFB médio, DOM Ready médio, % ≥ 5s, % ≥ 10s (os limites vêm dos thresholds do tenant).
+- **Cards:** page views no período (+ estimativa real), page views/hora e /min (velocidade estimada), load médio, load p95, TTFB médio, DOM Ready médio (2 casas decimais), % ≥ 5s, % ≥ 10s (limites do tenant). "Page view" = um carregamento de página (window load).
 - **Charts:** distribuição por tempo de carregamento, tempos médios (TTFB/DOM/Load), load p95 por página, por device/browser e por conexão.
 - **Tabelas:** por página, device/browser, browser e OS (ordenadas por p95).
 - **Filtros:** período (15m–3h), mínimo por grupo, busca de página e selects de device e browser (populados com os valores reais). Atualização automática (30s) + cron.

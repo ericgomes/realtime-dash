@@ -72,7 +72,7 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Mínimo por grupo</label>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Mínimo de page views</label>
           <select id="f-min" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-sm">
             <option value="1">1</option>
             <option value="3">3</option>
@@ -108,11 +108,21 @@
     </div>
 
     <div id="content">
-      <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+      <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Eventos no período</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Page views no período</div>
           <div id="c-count" class="text-xl font-bold">—</div>
           <div id="c-count-est" class="text-xs text-slate-400 dark:text-slate-500 mt-0.5"></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">Page views / hora</div>
+          <div id="c-per-hour" class="text-xl font-bold">—</div>
+          <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">Page views / min</div>
+          <div id="c-per-min" class="text-xl font-bold">—</div>
+          <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
           <div class="text-xs text-slate-500 dark:text-slate-400">Load médio</div>
@@ -218,9 +228,14 @@
       <summary class="text-lg font-bold cursor-pointer">Sobre este dashboard e métricas</summary>
       <div class="mt-3">
       <p class="text-slate-600 dark:text-slate-300 mb-4">
-        Mostra a performance de carregamento de páginas medida em <strong>usuários reais</strong> (RUM), coletada
-        pelo navegador via GTM. Os dados são <strong>amostrados</strong> (uma fração dos acessos) e consolidados em
-        resumos por período. A leitura é neutra: apresenta tempos e distribuições, sem rotular acessos como bons ou ruins.
+        Mostra a performance de carregamento medida em <strong>usuários reais</strong> (RUM), coletada pelo navegador via GTM.
+        Cada <strong>page view</strong> é um carregamento de página (evento window load). Os dados são <strong>amostrados</strong>
+        (uma fração dos page views) e consolidados em resumos por período. A leitura é neutra: apresenta tempos e distribuições,
+        sem rotular acessos como bons ou ruins.
+      </p>
+      <p class="text-slate-600 dark:text-slate-300 mb-4">
+        É um <strong>monitor ao vivo</strong>: mantém apenas as <strong>últimas 3 horas</strong>. Page views mais antigos são
+        descartados automaticamente — o histórico de longo prazo fica no GA4. Por isso os períodos vão só até 3h.
       </p>
 
       <h3 class="font-semibold mb-2">Métricas</h3>
@@ -243,8 +258,9 @@
 
       <h3 class="font-semibold mb-2">Observações</h3>
       <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300 space-y-1">
-        <li><strong>Amostragem:</strong> apenas uma fração dos carregamentos é registrada (taxa atual: <span id="exp-sample" class="font-semibold text-slate-800 dark:text-slate-100">—</span>, configurável por cliente). Os percentuais e percentis representam o todo; o card "Eventos no período" mostra a amostra e a estimativa de eventos reais (amostra ÷ taxa).</li>
-        <li><strong>Dados agregados:</strong> atualizam periodicamente (não são evento a evento). O horário de atualização e a janela aparecem no topo.</li>
+        <li><strong>Amostragem:</strong> apenas uma fração dos page views é registrada (taxa atual: <span id="exp-sample" class="font-semibold text-slate-800 dark:text-slate-100">—</span>, configurável por cliente). Os percentuais e percentis representam o todo; o card "Page views no período" mostra a amostra e a estimativa de page views reais (amostra ÷ taxa), além da velocidade estimada por hora e por minuto.</li>
+        <li><strong>Retenção:</strong> só as últimas 3 horas ficam no banco; o mais antigo é apagado a cada ciclo de agregação.</li>
+        <li><strong>Dados agregados:</strong> atualizam periodicamente (não são page view a page view). O horário de atualização e a janela aparecem no topo.</li>
         <li>Datas e horários no fuso de São Paulo.</li>
       </ul>
       </div>
@@ -489,8 +505,8 @@
       const t = summary.tenant || {};
       const geSlow = '% ≥ ' + sLabel(t.slowThresholdMs || 5000);
       const geVery = '% ≥ ' + sLabel(t.verySlowThresholdMs || 10000);
-      const fullCols = ['Grupo', 'Eventos', 'Load méd', 'p75', 'p95', 'TTFB méd', geSlow, geVery];
-      const slimCols = ['Grupo', 'Eventos', 'Load méd', 'p95', geSlow];
+      const fullCols = ['Grupo', 'Page views', 'Load méd', 'p75', 'p95', 'TTFB méd', geSlow, geVery];
+      const slimCols = ['Grupo', 'Page views', 'Load méd', 'p95', geSlow];
 
       el('th-page').innerHTML = th(fullCols);
       el('th-device').innerHTML = th(fullCols);
@@ -545,8 +561,11 @@
       const rate = (t.sampleRate && t.sampleRate > 0 && t.sampleRate <= 1) ? t.sampleRate : 1;
       const est = (o.estimatedTotal != null) ? o.estimatedTotal : (rate < 1 ? Math.round(o.total / rate) : o.total);
       el('c-count-est').textContent = est > o.total
-        ? '≈ ' + formatNumber(est) + ' reais · amostra ' + Math.round(rate * 100) + '%'
+        ? '≈ ' + formatNumber(est) + ' page views reais · amostra ' + Math.round(rate * 100) + '%'
         : 'amostra ' + Math.round(rate * 100) + '%';
+      const periodMin = summary.periodMinutes || 60;
+      el('c-per-hour').textContent = formatNumber(Math.round(est * 60 / periodMin));
+      el('c-per-min').textContent = formatNumber(Math.round(est / periodMin));
       const exp = el('exp-sample');
       if (exp) exp.textContent = Math.round(rate * 100) + '%';
       el('c-avg').textContent = formatSeconds2(o.avgLoadMs);
@@ -591,7 +610,7 @@
 
       if (!summary.overall || !summary.overall.total) {
         setStatus();
-        showEmpty('Nenhum evento no período selecionado.', 'Ajuste o período ou aguarde novos acessos.');
+        showEmpty('Nenhum page view no período selecionado.', 'Ajuste o período ou aguarde novos acessos.');
         return;
       }
       hideEmpty();
