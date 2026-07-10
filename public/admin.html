@@ -161,11 +161,16 @@
     }
 
     function tenantCard(t) {
-      const card = document.createElement('div');
+      const card = document.createElement('details');
       card.className = 'bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4';
       card.innerHTML =
-        '<div class="flex items-center justify-between mb-3">' +
-          '<h2 class="font-bold">' + t.slug + '</h2>' +
+        '<summary class="flex items-center gap-2 cursor-pointer font-bold">' +
+          '<span>' + t.slug + '</span>' +
+          '<span class="text-xs font-normal ' + (t.is_active === false ? 'text-red-500' : 'text-emerald-600') + '">' + (t.is_active === false ? '· inativo' : '· ativo') + '</span>' +
+          '<span class="ml-auto text-xs font-normal text-slate-400 dark:text-slate-500">' + (t.site || '') + '</span>' +
+        '</summary>' +
+        '<div class="mt-3">' +
+        '<div class="flex justify-end mb-3">' +
           '<label class="flex items-center gap-2 text-sm"><input type="checkbox" data-field="is_active" class="w-4 h-4" /> ativo</label>' +
         '</div>' +
         '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' + fieldsGrid() + '</div>' +
@@ -192,7 +197,8 @@
             '<button data-copytag class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar tag</button>' +
           '</div>' +
         '</details>' +
-        '<div class="mt-3 flex justify-end"><button data-save class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">Salvar</button></div>';
+        '<div class="mt-3 flex justify-end"><button data-save class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">Salvar</button></div>' +
+        '</div>';
 
       setValues(card, t);
       card.querySelector('[data-field="is_active"]').checked = t.is_active !== false;
