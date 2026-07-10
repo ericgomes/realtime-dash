@@ -32,7 +32,7 @@ async function fetchEvents(supabase, tenantId, startISO, endISO) {
   while (true) {
     const { data, error } = await supabase
       .from('load_events')
-      .select('load_time_ms,ttfb_ms,dom_ready_ms,page_path,device_label,browser,os,effective_type,is_iphone,sample_rate,prerendered')
+      .select('load_time_ms,ttfb_ms,dom_ready_ms,page_path,device_label,browser,os,effective_type,is_iphone,sample_rate,prerendered,is_bot')
       .eq('tenant_id', tenantId)
       .gte('created_at', startISO)
       .lte('created_at', endISO)
@@ -124,8 +124,10 @@ module.exports = async (req, res) => {
 
       const windowEnd = new Date(now);
       const windowStart = new Date(now - p.minutes * 60000);
-      const events = await fetchEvents(supabase, tenant.id, windowStart.toISOString(), windowEnd.toISOString());
+      const allEvents = await fetchEvents(supabase, tenant.id, windowStart.toISOString(), windowEnd.toISOString());
+      const events = allEvents.filter(e => !e.is_bot);
       const overall = overallStats(events, tenant);
+      overall.botPercent = pct(allEvents.length - events.length, allEvents.length);
 
       const payload = {
         generatedAt: new Date(now).toISOString(),

@@ -132,9 +132,9 @@
             <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
           </div>
           <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 text-center">
-            <div class="text-xs text-slate-500 dark:text-slate-400">% pré-renderizado</div>
-            <div id="c-prerender" class="text-xl font-bold">—</div>
-            <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">fora dos tempos de load</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">% bots</div>
+            <div id="c-bots" class="text-xl font-bold">—</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">excluídos dos dados</div>
           </div>
         </section>
       </div>
@@ -276,6 +276,7 @@
       <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300 space-y-1">
         <li><strong>Amostragem:</strong> registramos ~<span id="exp-sample" class="font-semibold text-slate-800 dark:text-slate-100">—</span> dos page views. Os <strong>percentuais e o p95 valem para o todo</strong>; os cards de volume mostram a amostra e estimam o total real (amostra ÷ taxa).</li>
         <li><strong>Volume:</strong> as tabelas priorizam as páginas mais acessadas. Páginas com menos de 3 page views não entram; use o "mínimo de page views" para focar no que tem tráfego.</li>
+        <li><strong>Bots:</strong> tráfego de robôs (Googlebot e outros, detectados pelo User-Agent) é excluído de todos os números; o card "% bots" mostra quanto foi filtrado.</li>
         <li>Dados agregados a cada ~1 min · horários no fuso de São Paulo.</li>
       </ul>
       </div>
@@ -677,7 +678,7 @@
       const periodMin = summary.periodMinutes || 60;
       el('c-per-hour').textContent = formatNumber(Math.round(est * 60 / periodMin));
       el('c-per-min').textContent = formatNumber(Math.round(est / periodMin));
-      el('c-prerender').textContent = formatPercent(o.prerenderedPercent);
+      el('c-bots').textContent = formatPercent(o.botPercent);
       const exp = el('exp-sample');
       if (exp) exp.textContent = Math.round(rate * 100) + '%';
       el('c-avg').textContent = formatSeconds2(o.avgLoadMs);
