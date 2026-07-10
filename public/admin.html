@@ -113,6 +113,53 @@
       return obj;
     }
 
+    function samplePct(t) {
+      const r = t.sample_rate;
+      if (r == null || isNaN(r)) return 10;
+      return r > 1 ? Math.round(r) : Math.round(r * 100);
+    }
+    function gtmTag(token, pct) {
+      return '<script>\n' +
+'(function() {\n' +
+'  var SAMPLE_PERCENT = ' + pct + ';\n' +
+'  if (Math.random() * 100 >= SAMPLE_PERCENT) return;\n' +
+'\n' +
+'  setTimeout(function() {\n' +
+'    var nav = performance.getEntriesByType && performance.getEntriesByType(\'navigation\')[0];\n' +
+'    if (!nav || !nav.loadEventEnd) return;\n' +
+'\n' +
+'    var act = nav.activationStart || 0;\n' +
+'\n' +
+'    var payload = {\n' +
+'      page_location: location.href,\n' +
+'      page_path: location.pathname,\n' +
+'      sample_rate: SAMPLE_PERCENT,\n' +
+'      prerendered: act > 0,\n' +
+'      load_time_ms: Math.max(0, Math.round(nav.loadEventEnd - act)),\n' +
+'      dom_ready_ms: Math.max(0, Math.round(nav.domContentLoadedEventEnd - act)),\n' +
+'      ttfb_ms: Math.round(nav.responseStart - nav.requestStart),\n' +
+'      user_agent: navigator.userAgent,\n' +
+'      width: window.innerWidth,\n' +
+'      height: window.innerHeight,\n' +
+'      timestamp: new Date().toISOString()\n' +
+'    };\n' +
+'\n' +
+'    if (navigator.connection) {\n' +
+'      payload.effective_type = navigator.connection.effectiveType || null;\n' +
+'      payload.downlink = navigator.connection.downlink || null;\n' +
+'    }\n' +
+'\n' +
+'    fetch(\'' + API_BASE + '/api/ingest\', {\n' +
+'      method: \'POST\',\n' +
+'      headers: { \'content-type\': \'application/json\', \'x-ingest-token\': \'' + token + '\' },\n' +
+'      body: JSON.stringify(payload),\n' +
+'      keepalive: true\n' +
+'    }).catch(function() {});\n' +
+'  }, 0);\n' +
+'})();\n' +
+'<\/script>';
+    }
+
     function tenantCard(t) {
       const card = document.createElement('div');
       card.className = 'bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4';
@@ -138,6 +185,13 @@
             '<button data-regenview class="rounded-lg border border-amber-400 text-amber-600 dark:text-amber-400 px-3 py-1.5 text-sm hover:bg-amber-50 dark:hover:bg-slate-700">Regenerar</button>' +
           '</div>' +
         '</div>' +
+        '<details class="mt-3">' +
+          '<summary class="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer">Tag do GTM (HTML personalizado · gatilho Window Loaded)</summary>' +
+          '<div class="mt-2">' +
+            '<textarea data-gtmtag readonly rows="12" spellcheck="false" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-xs font-mono"></textarea>' +
+            '<button data-copytag class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar tag</button>' +
+          '</div>' +
+        '</details>' +
         '<div class="mt-3 flex justify-end"><button data-save class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">Salvar</button></div>';
 
       setValues(card, t);
@@ -145,6 +199,11 @@
       card.querySelector('[data-token]').value = t.ingest_token || '';
       const viewLink = t.view_token ? (API_BASE + '/?token=' + t.view_token) : '';
       card.querySelector('[data-viewlink]').value = viewLink;
+      card.querySelector('[data-gtmtag]').value = gtmTag(t.ingest_token || 'SEU_TOKEN', samplePct(t));
+      card.querySelector('[data-copytag]').addEventListener('click', () => {
+        navigator.clipboard.writeText(card.querySelector('[data-gtmtag]').value);
+        setMsg('Tag copiada.', true);
+      });
 
       card.querySelector('[data-copy]').addEventListener('click', () => {
         navigator.clipboard.writeText(t.ingest_token || '');
