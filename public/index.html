@@ -108,47 +108,48 @@
     </div>
 
     <div id="content">
-      <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Page views no período</div>
-          <div id="c-count" class="text-xl font-bold">—</div>
-          <div id="c-count-est" class="text-xs text-slate-400 dark:text-slate-500 mt-0.5"></div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Page views / hora</div>
-          <div id="c-per-hour" class="text-xl font-bold">—</div>
-          <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Page views / min</div>
-          <div id="c-per-min" class="text-xl font-bold">—</div>
-          <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Load médio</div>
-          <div id="c-avg" class="text-xl font-bold">—</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Load p95</div>
-          <div id="c-p95" class="text-xl font-bold">—</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">TTFB médio</div>
-          <div id="c-ttfb" class="text-xl font-bold">—</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">DOM Ready médio</div>
-          <div id="c-dom" class="text-xl font-bold">—</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div id="lbl-slow" class="text-xs text-slate-500 dark:text-slate-400">% ≥ 5s</div>
-          <div id="c-slow" class="text-xl font-bold">—</div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
-          <div id="lbl-vslow" class="text-xs text-slate-500 dark:text-slate-400">% ≥ 10s</div>
-          <div id="c-vslow" class="text-xl font-bold">—</div>
-        </div>
-      </section>
+      <div class="mb-5">
+        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Pageviews</div>
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Page views no período</div>
+            <div id="c-count" class="text-xl font-bold">—</div>
+            <div id="c-count-est" class="text-xs text-slate-400 dark:text-slate-500 mt-0.5"></div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Page views / hora</div>
+            <div id="c-per-hour" class="text-xl font-bold">—</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Page views / min</div>
+            <div id="c-per-min" class="text-xl font-bold">—</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">estimado</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="mb-6">
+        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Loads</div>
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Load médio</div>
+            <div id="c-avg" class="text-xl font-bold">—</div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Load p95</div>
+            <div id="c-p95" class="text-xl font-bold">—</div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">TTFB médio</div>
+            <div id="c-ttfb" class="text-xl font-bold">—</div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">DOM Ready médio</div>
+            <div id="c-dom" class="text-xl font-bold">—</div>
+          </div>
+        </section>
+      </div>
 
       <h2 class="text-lg font-bold mb-3">Visão geral</h2>
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -592,8 +593,6 @@
     function renderCards(summary) {
       const o = summary.overall;
       const t = summary.tenant || {};
-      el('lbl-slow').textContent = '% ≥ ' + sLabel(t.slowThresholdMs || 5000);
-      el('lbl-vslow').textContent = '% ≥ ' + sLabel(t.verySlowThresholdMs || 10000);
       el('c-count').textContent = formatNumber(o.total);
       const rate = (t.sampleRate && t.sampleRate > 0 && t.sampleRate <= 1) ? t.sampleRate : 1;
       const est = (o.estimatedTotal != null) ? o.estimatedTotal : (rate < 1 ? Math.round(o.total / rate) : o.total);
@@ -609,8 +608,6 @@
       el('c-p95').textContent = formatSeconds2(o.p95LoadMs);
       el('c-ttfb').textContent = formatSeconds2(o.avgTtfbMs);
       el('c-dom').textContent = formatSeconds2(o.avgDomReadyMs);
-      el('c-slow').textContent = formatPercent(o.slowOrVerySlowPercent);
-      el('c-vslow').textContent = formatPercent(o.verySlowPercent);
     }
 
     function showEmpty(title, sub) {
