@@ -65,31 +65,21 @@ Cada tenant tem `ingest_token` (tag do GTM) e `view_token` (link do dashboard), 
 3. **Env na Vercel:** adicionar `CRON_SECRET` (segredo forte). O Vercel Cron autentica automaticamente enviando `Authorization: Bearer ${CRON_SECRET}`.
 4. **Cron:** já configurado em `vercel.json` (`*/1 * * * *`). **Atenção:** no plano **Hobby** o cron da Vercel roda no máximo 1x/dia — para agregação de minuto em minuto, use plano **Pro** ou um cron externo (ex.: cron-job.org) chamando `/api/aggregate?secret=CRON_SECRET`.
 
-## Tag do GTM
+## Tag do GTM (loader)
 
-Tag **HTML personalizado**, gatilho único **Window Loaded**. Trocar `SEU_TOKEN_DO_TENANT` pelo `ingest_token` do cliente (em `tenants.ingest_token`). O `SAMPLE_PERCENT` controla a amostragem **em porcentagem** (ex.: `10` = 10%, `5` = 5%) e é enviado no payload para o backend estimar o total real.
-
-O token identifica **e** autentica o cliente (não use `?tenant=slug`, que é adivinhável). Ele é por-cliente e revogável: para rotacionar, `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`.
-
-**SPA (uma só tag):** a própria tag detecta troca de rota sem reload — faz *patch* de `history.pushState`/`replaceState` e escuta `popstate`. O carregamento real envia os tempos (`nav_type: 'load'`); cada navegação SPA envia um pageview **sem tempos** (`nav_type: 'spa'`), então conta no volume mas **não entra** nas métricas de load (o backend ignora eventos sem `load_time_ms`). Em site que não é SPA os listeners nunca disparam — mesmo comportamento de sempre. Não precisa de trigger extra nem de mudança no banco (`nav_type` fica no `raw`).
+Tag **HTML personalizado**, gatilho **All Pages**. A tag é só um *loader*: a lógica de RUM mora em [`public/lsm.js`](public/lsm.js), servido pela Vercel. Cole o snippet **uma vez** no GTM de cada cliente e, daí em diante, **qualquer mudança no `lsm.js` propaga sozinha** para todos os sites — sem reeditar/publicar o GTM.
 
 ```html
-<script>
-(function(){
-  var A='https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest',T='SEU_TOKEN_DO_TENANT',S=10,last=location.pathname;
-  if(window.__lsm)return;window.__lsm=1;
-  if(Math.random()*100>=S)return;
-  function P(t){var c=navigator.connection||{};return{page_location:location.href,page_path:location.pathname,sample_rate:S,nav_type:t,user_agent:navigator.userAgent,width:innerWidth,height:innerHeight,timestamp:new Date().toISOString(),effective_type:c.effectiveType||null,downlink:c.downlink||null};}
-  function G(p){fetch(A,{method:'POST',headers:{'content-type':'application/json','x-ingest-token':T},body:JSON.stringify(p),keepalive:true}).catch(function(){});}
-  setTimeout(function(){var n=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];if(!n||!n.loadEventEnd)return;var a=n.activationStart||0,p=P('load');p.prerendered=a>0;p.load_time_ms=Math.max(0,Math.round(n.loadEventEnd-a));p.dom_ready_ms=Math.max(0,Math.round(n.domContentLoadedEventEnd-a));p.ttfb_ms=Math.round(n.responseStart-n.requestStart);G(p);},0);
-  function R(){setTimeout(function(){if(location.pathname==last)return;last=location.pathname;G(P('spa'));},0);}
-  ['pushState','replaceState'].forEach(function(m){var o=history[m];if(o)history[m]=function(){var r=o.apply(this,arguments);R();return r;};});
-  addEventListener('popstate',R);
-})();
-</script>
+<script async src="https://realtime-dash-eric-9609s-projects.vercel.app/lsm.js"
+  data-token="SEU_TOKEN_DO_TENANT" data-sample="10"></script>
 ```
 
-> O domínio de ingestão precisa estar no `connect-src` do CSP do site. Ver seção CSP.
+- `data-token` = `ingest_token` do cliente (em `tenants.ingest_token`). Identifica **e** autentica (não use `?tenant=slug`, que é adivinhável); por-cliente e revogável: `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`.
+- `data-sample` = amostragem **em %** (ex.: `10` = 10%, `5` = 5%), enviada no payload para o backend estimar o total real. O `lsm.js` deriva a URL da API do próprio `src`.
+
+**SPA (mesma tag):** o `lsm.js` detecta troca de rota sem reload — faz *patch* de `history.pushState`/`replaceState` e escuta `popstate`. O carregamento real envia os tempos (`nav_type: 'load'`); cada navegação SPA envia um pageview **sem tempos** (`nav_type: 'spa'`), então conta no volume mas **não entra** nas métricas de load (o backend ignora eventos sem `load_time_ms`). Em site que não é SPA os listeners nunca disparam. Não precisa de trigger extra nem de mudança no banco (`nav_type` fica no `raw`).
+
+> Se o site do cliente tiver CSP, o domínio da Vercel precisa estar em **dois** lugares: `script-src` (para carregar o `lsm.js`) e `connect-src` (para o `fetch` de ingestão).
 
 ## Endpoints
 
