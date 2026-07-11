@@ -28,6 +28,11 @@ function newToken(prefix) {
   return prefix + crypto.randomBytes(20).toString('hex');
 }
 
+function deriveSlug(site) {
+  const s = String(site || '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+  return s.split('.')[0] || 'tenant';
+}
+
 function toDomains(v) {
   if (Array.isArray(v)) return v.map(s => String(s).trim()).filter(Boolean);
   if (typeof v === 'string') return v.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
@@ -90,11 +95,12 @@ module.exports = async (req, res) => {
       return;
     }
 
-    if (!body.slug || !fields.name || !fields.site) {
+    if (!fields.name || !fields.site) {
       res.status(400).json({ ok: false, error: 'missing_fields' });
       return;
     }
-    fields.slug = String(body.slug).toLowerCase();
+    const rawSlug = String(body.slug || '').trim().toLowerCase();
+    fields.slug = rawSlug || deriveSlug(fields.site);
     fields.ingest_token = newToken('ing_');
     fields.view_token = newToken('view_');
     const { data, error } = await supabase.from('tenants').insert(fields).select().maybeSingle();

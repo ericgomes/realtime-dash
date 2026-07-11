@@ -279,11 +279,33 @@
     }
 
     function buildNewForm() {
-      el('new-form').innerHTML =
-        '<div><label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Slug (único)</label>' +
-        '<input data-field="slug" type="text" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm" /></div>' +
+      const form = el('new-form');
+      form.innerHTML =
+        '<div><label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Slug (auto pelo site)</label>' +
+        '<input data-field="slug" type="text" placeholder="opcional" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm" /></div>' +
         fieldsGrid();
-      el('new-form').querySelector('[data-field="default_period_key"]').value = '60m';
+
+      const defaults = {
+        sample_rate: '0.10', slow_threshold_ms: '5000', very_slow_threshold_ms: '10000',
+        retention_hours: '3', aggregation_freshness_minutes: '1', min_group_size: '3',
+        default_period_key: '60m', timezone: 'America/Sao_Paulo'
+      };
+      Object.keys(defaults).forEach(k => {
+        const i = form.querySelector('[data-field="' + k + '"]');
+        if (i) i.value = defaults[k];
+      });
+
+      const siteInput = form.querySelector('[data-field="site"]');
+      const slugInput = form.querySelector('[data-field="slug"]');
+      const domInput = form.querySelector('[data-field="allowed_domains"]');
+      slugInput.addEventListener('input', () => { slugInput.dataset.touched = '1'; });
+      domInput.addEventListener('input', () => { domInput.dataset.touched = '1'; });
+      siteInput.addEventListener('input', () => {
+        const bare = siteInput.value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+        if (!bare) return;
+        if (!slugInput.dataset.touched) slugInput.value = bare.split('.')[0];
+        if (!domInput.dataset.touched) domInput.value = bare + ', www.' + bare;
+      });
     }
 
     el('theme-toggle').addEventListener('click', () => {
