@@ -186,6 +186,7 @@
           '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Link do dashboard (token de leitura)</label>' +
           '<div class="flex gap-2">' +
             '<input data-viewlink type="text" readonly class="flex-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm font-mono" />' +
+            '<a data-openlink target="_blank" rel="noopener" class="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Abrir</a>' +
             '<button data-copylink class="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar link</button>' +
             '<button data-regenview class="rounded-lg border border-amber-400 text-amber-600 dark:text-amber-400 px-3 py-1.5 text-sm hover:bg-amber-50 dark:hover:bg-slate-700">Regenerar</button>' +
           '</div>' +
@@ -205,6 +206,8 @@
       card.querySelector('[data-token]').value = t.ingest_token || '';
       const viewLink = t.view_token ? (API_BASE + '/?token=' + t.view_token) : '';
       card.querySelector('[data-viewlink]').value = viewLink;
+      const openLink = card.querySelector('[data-openlink]');
+      if (viewLink) { openLink.href = viewLink; } else { openLink.classList.add('hidden'); }
       card.querySelector('[data-gtmtag]').value = gtmTag(t.ingest_token || 'SEU_TOKEN', samplePct(t));
       card.querySelector('[data-copytag]').addEventListener('click', () => {
         navigator.clipboard.writeText(card.querySelector('[data-gtmtag]').value);
