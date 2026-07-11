@@ -288,7 +288,7 @@
       const defaults = {
         sample_rate: '0.10', slow_threshold_ms: '5000', very_slow_threshold_ms: '10000',
         retention_hours: '3', aggregation_freshness_minutes: '1', min_group_size: '3',
-        default_period_key: '60m', timezone: 'America/Sao_Paulo'
+        default_period_key: '3h', timezone: 'America/Sao_Paulo'
       };
       Object.keys(defaults).forEach(k => {
         const i = form.querySelector('[data-field="' + k + '"]');

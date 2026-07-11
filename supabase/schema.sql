@@ -9,7 +9,7 @@ create table if not exists public.tenants (
   is_active boolean not null default true,
   retention_hours numeric not null default 3,
   aggregation_freshness_minutes integer not null default 1,
-  default_period_key text not null default '60m',
+  default_period_key text not null default '3h',
   min_group_size integer not null default 5,
   slow_threshold_ms integer not null default 5000,
   very_slow_threshold_ms integer not null default 10000,
@@ -46,7 +46,7 @@ insert into public.tenants (
 values (
   'prospin', 'Pró Spin', 'prospin.com.br',
   array['prospin.com.br', 'www.prospin.com.br'],
-  3, 1, '60m', 5, 5000, 10000, 'America/Sao_Paulo', 'shared'
+  3, 1, '3h', 5, 5000, 10000, 'America/Sao_Paulo', 'shared'
 )
 on conflict (slug) do update set
   name = excluded.name,

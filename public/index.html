@@ -708,7 +708,7 @@
           el('f-min').value = String(t.minGroupSize);
         }
         if (!urlApplied.period) {
-          const dp = t.defaultPeriodKey || '60m';
+          const dp = t.defaultPeriodKey || '3h';
           if (dp !== getSelectedPeriod() && PERIOD_LABELS[dp]) {
             el('f-period').value = dp;
             fetchSummary();
@@ -802,7 +802,7 @@
     el('f-min').addEventListener('change', () => { pagesPage = 1; syncUrl(); renderView(); });
     el('f-period').addEventListener('change', () => { pagesPage = 1; syncUrl(); refreshNow(); });
 
-    el('f-period').value = '60m';
+    el('f-period').value = '3h';
     readUrlFilters();
     fetchSummary();
     updateRefreshRing();
