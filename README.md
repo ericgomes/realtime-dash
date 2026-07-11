@@ -67,48 +67,77 @@ Cada tenant tem `ingest_token` (tag do GTM) e `view_token` (link do dashboard), 
 
 ## Tag do GTM
 
-Tag **HTML personalizado**, gatilho **Window Loaded**. Trocar `SEU_TOKEN_DO_TENANT` pelo `ingest_token` do cliente (em `tenants.ingest_token`). O `SAMPLE_PERCENT` controla a amostragem **em porcentagem** (ex.: `10` = 10%, `5` = 5%) e é enviado no payload para o backend estimar o total real.
+Tag **HTML personalizado**, gatilho único **Window Loaded**. Trocar `SEU_TOKEN_DO_TENANT` pelo `ingest_token` do cliente (em `tenants.ingest_token`). O `SAMPLE_PERCENT` controla a amostragem **em porcentagem** (ex.: `10` = 10%, `5` = 5%) e é enviado no payload para o backend estimar o total real.
 
 O token identifica **e** autentica o cliente (não use `?tenant=slug`, que é adivinhável). Ele é por-cliente e revogável: para rotacionar, `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`.
+
+**SPA (uma só tag):** a própria tag detecta troca de rota sem reload — faz *patch* de `history.pushState`/`replaceState` e escuta `popstate`. O carregamento real envia os tempos (`nav_type: 'load'`); cada navegação SPA envia um pageview **sem tempos** (`nav_type: 'spa'`), então conta no volume mas **não entra** nas métricas de load (o backend ignora eventos sem `load_time_ms`). Em site que não é SPA os listeners nunca disparam — mesmo comportamento de sempre. Não precisa de trigger extra nem de mudança no banco (`nav_type` fica no `raw`).
 
 ```html
 <script>
 (function() {
+  var API = 'https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest';
+  var TOKEN = 'SEU_TOKEN_DO_TENANT';
   var SAMPLE_PERCENT = 10;
+
+  if (window.__lsm) return;
+  window.__lsm = 1;
   if (Math.random() * 100 >= SAMPLE_PERCENT) return;
 
-  setTimeout(function() {
-    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-    if (!nav || !nav.loadEventEnd) return;
-
-    var act = nav.activationStart || 0;
-
-    var payload = {
+  function payload(navType) {
+    var p = {
       page_location: location.href,
       page_path: location.pathname,
       sample_rate: SAMPLE_PERCENT,
-      prerendered: act > 0,
-      load_time_ms: Math.max(0, Math.round(nav.loadEventEnd - act)),
-      dom_ready_ms: Math.max(0, Math.round(nav.domContentLoadedEventEnd - act)),
-      ttfb_ms: Math.round(nav.responseStart - nav.requestStart),
+      nav_type: navType,
       user_agent: navigator.userAgent,
       width: window.innerWidth,
       height: window.innerHeight,
       timestamp: new Date().toISOString()
     };
-
     if (navigator.connection) {
-      payload.effective_type = navigator.connection.effectiveType || null;
-      payload.downlink = navigator.connection.downlink || null;
+      p.effective_type = navigator.connection.effectiveType || null;
+      p.downlink = navigator.connection.downlink || null;
     }
+    return p;
+  }
 
-    fetch('https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest', {
+  function send(p) {
+    fetch(API, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-ingest-token': 'SEU_TOKEN_DO_TENANT' },
-      body: JSON.stringify(payload),
+      headers: { 'content-type': 'application/json', 'x-ingest-token': TOKEN },
+      body: JSON.stringify(p),
       keepalive: true
     }).catch(function() {});
+  }
+
+  // 1) carregamento real: envia os tempos
+  setTimeout(function() {
+    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    if (!nav || !nav.loadEventEnd) return;
+    var act = nav.activationStart || 0;
+    var p = payload('load');
+    p.prerendered = act > 0;
+    p.load_time_ms = Math.max(0, Math.round(nav.loadEventEnd - act));
+    p.dom_ready_ms = Math.max(0, Math.round(nav.domContentLoadedEventEnd - act));
+    p.ttfb_ms = Math.round(nav.responseStart - nav.requestStart);
+    send(p);
   }, 0);
+
+  // 2) SPA: detecta troca de rota (sem reload) e envia pageview sem tempos
+  var lastPath = location.pathname;
+  function onRoute() {
+    setTimeout(function() {
+      if (location.pathname === lastPath) return;
+      lastPath = location.pathname;
+      send(payload('spa'));
+    }, 0);
+  }
+  var _push = history.pushState;
+  if (_push) history.pushState = function() { var r = _push.apply(this, arguments); onRoute(); return r; };
+  var _rep = history.replaceState;
+  if (_rep) history.replaceState = function() { var r = _rep.apply(this, arguments); onRoute(); return r; };
+  window.addEventListener('popstate', onRoute);
 })();
 </script>
 ```

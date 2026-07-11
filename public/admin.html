@@ -121,41 +121,68 @@
     function gtmTag(token, pct) {
       return '<script>\n' +
 '(function() {\n' +
+'  var API = \'' + API_BASE + '/api/ingest\';\n' +
+'  var TOKEN = \'' + token + '\';\n' +
 '  var SAMPLE_PERCENT = ' + pct + ';\n' +
+'\n' +
+'  if (window.__lsm) return;\n' +
+'  window.__lsm = 1;\n' +
 '  if (Math.random() * 100 >= SAMPLE_PERCENT) return;\n' +
 '\n' +
-'  setTimeout(function() {\n' +
-'    var nav = performance.getEntriesByType && performance.getEntriesByType(\'navigation\')[0];\n' +
-'    if (!nav || !nav.loadEventEnd) return;\n' +
-'\n' +
-'    var act = nav.activationStart || 0;\n' +
-'\n' +
-'    var payload = {\n' +
+'  function payload(navType) {\n' +
+'    var p = {\n' +
 '      page_location: location.href,\n' +
 '      page_path: location.pathname,\n' +
 '      sample_rate: SAMPLE_PERCENT,\n' +
-'      prerendered: act > 0,\n' +
-'      load_time_ms: Math.max(0, Math.round(nav.loadEventEnd - act)),\n' +
-'      dom_ready_ms: Math.max(0, Math.round(nav.domContentLoadedEventEnd - act)),\n' +
-'      ttfb_ms: Math.round(nav.responseStart - nav.requestStart),\n' +
+'      nav_type: navType,\n' +
 '      user_agent: navigator.userAgent,\n' +
 '      width: window.innerWidth,\n' +
 '      height: window.innerHeight,\n' +
 '      timestamp: new Date().toISOString()\n' +
 '    };\n' +
-'\n' +
 '    if (navigator.connection) {\n' +
-'      payload.effective_type = navigator.connection.effectiveType || null;\n' +
-'      payload.downlink = navigator.connection.downlink || null;\n' +
+'      p.effective_type = navigator.connection.effectiveType || null;\n' +
+'      p.downlink = navigator.connection.downlink || null;\n' +
 '    }\n' +
+'    return p;\n' +
+'  }\n' +
 '\n' +
-'    fetch(\'' + API_BASE + '/api/ingest\', {\n' +
+'  function send(p) {\n' +
+'    fetch(API, {\n' +
 '      method: \'POST\',\n' +
-'      headers: { \'content-type\': \'application/json\', \'x-ingest-token\': \'' + token + '\' },\n' +
-'      body: JSON.stringify(payload),\n' +
+'      headers: { \'content-type\': \'application/json\', \'x-ingest-token\': TOKEN },\n' +
+'      body: JSON.stringify(p),\n' +
 '      keepalive: true\n' +
 '    }).catch(function() {});\n' +
+'  }\n' +
+'\n' +
+'  // 1) carregamento real: envia os tempos\n' +
+'  setTimeout(function() {\n' +
+'    var nav = performance.getEntriesByType && performance.getEntriesByType(\'navigation\')[0];\n' +
+'    if (!nav || !nav.loadEventEnd) return;\n' +
+'    var act = nav.activationStart || 0;\n' +
+'    var p = payload(\'load\');\n' +
+'    p.prerendered = act > 0;\n' +
+'    p.load_time_ms = Math.max(0, Math.round(nav.loadEventEnd - act));\n' +
+'    p.dom_ready_ms = Math.max(0, Math.round(nav.domContentLoadedEventEnd - act));\n' +
+'    p.ttfb_ms = Math.round(nav.responseStart - nav.requestStart);\n' +
+'    send(p);\n' +
 '  }, 0);\n' +
+'\n' +
+'  // 2) SPA: detecta troca de rota (sem reload) e envia pageview sem tempos\n' +
+'  var lastPath = location.pathname;\n' +
+'  function onRoute() {\n' +
+'    setTimeout(function() {\n' +
+'      if (location.pathname === lastPath) return;\n' +
+'      lastPath = location.pathname;\n' +
+'      send(payload(\'spa\'));\n' +
+'    }, 0);\n' +
+'  }\n' +
+'  var _push = history.pushState;\n' +
+'  if (_push) history.pushState = function() { var r = _push.apply(this, arguments); onRoute(); return r; };\n' +
+'  var _rep = history.replaceState;\n' +
+'  if (_rep) history.replaceState = function() { var r = _rep.apply(this, arguments); onRoute(); return r; };\n' +
+'  window.addEventListener(\'popstate\', onRoute);\n' +
 '})();\n' +
 '<\/script>';
     }
@@ -192,7 +219,7 @@
           '</div>' +
         '</div>' +
         '<details class="mt-3">' +
-          '<summary class="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer">Tag do GTM (HTML personalizado · gatilho Window Loaded)</summary>' +
+          '<summary class="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer">Tag do GTM (HTML personalizado · gatilho Window Loaded · SPA automático)</summary>' +
           '<div class="mt-2">' +
             '<textarea data-gtmtag readonly rows="12" spellcheck="false" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-xs font-mono"></textarea>' +
             '<button data-copytag class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar tag</button>' +
