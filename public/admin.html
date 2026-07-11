@@ -57,6 +57,12 @@
 
   <script>
     const API_BASE = 'https://realtime-dash-eric-9609s-projects.vercel.app';
+    // Dominios que servem o mesmo projeto. O escolhido vai no src da tag.
+    // O 1o e o padrao. Ambos precisam estar no CSP do site do cliente.
+    const TAG_HOSTS = [
+      { label: 'realtime-dash-…vercel.app (atual · já no CSP)', url: 'https://realtime-dash-eric-9609s-projects.vercel.app' },
+      { label: 'lsm.agenciademarketingdigital.com.br (novo)', url: 'https://lsm.agenciademarketingdigital.com.br' }
+    ];
     // Versao do loader (?v=). Bump junto com public/lsm.js para forçar atualização imediata.
     const LSM_VERSION = '20260711';
     const el = (id) => document.getElementById(id);
@@ -120,8 +126,8 @@
       if (r == null || isNaN(r)) return 10;
       return r > 1 ? Math.round(r) : Math.round(r * 100);
     }
-    function gtmTag(token, pct) {
-      return '<script async src="' + API_BASE + '/lsm.js?v=' + LSM_VERSION + '" data-token="' + token + '" data-sample="' + pct + '"><\/script>';
+    function gtmTag(token, pct, host) {
+      return '<script async src="' + (host || TAG_HOSTS[0].url) + '/lsm.js?v=' + LSM_VERSION + '" data-token="' + token + '" data-sample="' + pct + '"><\/script>';
     }
 
     function tenantCard(t) {
@@ -160,6 +166,10 @@
           '<summary class="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer">Tag do GTM (HTML personalizado · gatilho All Pages · SPA automático)</summary>' +
           '<div class="mt-2">' +
             '<p class="text-xs text-slate-400 dark:text-slate-500 mb-2">A lógica mora em <code>/lsm.js</code> (cache 12&nbsp;h): cole uma vez e futuras mudanças propagam sozinhas. A tag já vem com <code>data-sample</code> (amostra no browser, não busca config). <b>Tráfego baixo:</b> remova o <code>data-sample</code> ao colar — aí a taxa vem do backend (<code>sample_rate</code> acima) por sessão, sem tocar na tag depois.</p>' +
+            '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Domínio do script (precisa estar no CSP do site)</label>' +
+            '<select data-taghost class="w-full mb-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1.5 text-sm">' +
+              TAG_HOSTS.map(function (h) { return '<option value="' + h.url + '">' + h.label + '</option>'; }).join('') +
+            '</select>' +
             '<textarea data-gtmtag readonly rows="3" spellcheck="false" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-xs font-mono"></textarea>' +
             '<button data-copytag class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar tag</button>' +
           '</div>' +
@@ -174,7 +184,11 @@
       card.querySelector('[data-viewlink]').value = viewLink;
       const openLink = card.querySelector('[data-openlink]');
       if (viewLink) { openLink.href = viewLink; } else { openLink.classList.add('hidden'); }
-      card.querySelector('[data-gtmtag]').value = gtmTag(t.ingest_token || 'SEU_TOKEN', pctVal);
+      const tagHost = card.querySelector('[data-taghost]');
+      const tagArea = card.querySelector('[data-gtmtag]');
+      const renderTag = () => { tagArea.value = gtmTag(t.ingest_token || 'SEU_TOKEN', pctVal, tagHost.value); };
+      tagHost.addEventListener('change', renderTag);
+      renderTag();
       card.querySelector('[data-copytag]').addEventListener('click', () => {
         navigator.clipboard.writeText(card.querySelector('[data-gtmtag]').value);
         setMsg('Tag copiada.', true);

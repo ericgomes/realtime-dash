@@ -81,7 +81,9 @@ Tag **HTML personalizado**, gatilho **All Pages**. A tag é só um *loader*: a l
 
 **SPA (mesma tag):** o `lsm.js` detecta troca de rota sem reload — faz *patch* de `history.pushState`/`replaceState` e escuta `popstate`. O carregamento real envia os tempos (`nav_type: 'load'`); cada navegação SPA envia um pageview **sem tempos** (`nav_type: 'spa'`), então conta no volume mas **não entra** nas métricas de load (o backend ignora eventos sem `load_time_ms`). Em site que não é SPA os listeners nunca disparam. Não precisa de trigger extra nem de mudança no banco (`nav_type` fica no `raw`).
 
-> Se o site do cliente tiver CSP, o domínio da Vercel precisa estar em **dois** lugares: `script-src` (para carregar o `lsm.js`) e `connect-src` (para o `fetch` de ingestão).
+> **Domínios:** o projeto responde tanto em `realtime-dash-…vercel.app` quanto no domínio próprio `lsm.agenciademarketingdigital.com.br` (mesmo deploy). O admin tem um seletor de domínio para o `src` da tag (`TAG_HOSTS`). O `lsm.js` deriva a URL da API do próprio `src`, então qualquer um dos dois funciona sem mudar código.
+>
+> Se o site do cliente tiver CSP, o domínio escolhido precisa estar em **dois** lugares: `script-src` (para carregar o `lsm.js`) e `connect-src` (para `/api/ingest` e `/api/config`).
 
 ## Endpoints
 
