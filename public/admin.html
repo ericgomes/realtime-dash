@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Config de Tenants — Realtime Dash</title>
+  <title>Config de Sites — Realtime Dash</title>
 
   <script>
     (function() {
@@ -28,7 +28,7 @@
 
     <header class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Config de Tenants</h1>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Config de Sites</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">Realtime Dash — administração</p>
       </div>
       <button id="theme-toggle" aria-label="Alternar tema"
@@ -47,9 +47,9 @@
     </section>
 
     <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-6">
-      <summary class="font-semibold cursor-pointer">+ Novo tenant</summary>
+      <summary class="font-semibold cursor-pointer">+ Novo site</summary>
       <div id="new-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3"></div>
-      <button id="create" class="mt-3 bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-emerald-700">Criar tenant</button>
+      <button id="create" class="mt-3 bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-emerald-700">Criar site</button>
     </details>
 
     <div id="list" class="space-y-4"></div>
@@ -251,7 +251,7 @@
         });
         const j = await r.json();
         if (!j.ok) { setMsg('Erro ao criar: ' + (j.detail || j.error || r.status), false); return; }
-        setMsg('Tenant criado.', true);
+        setMsg('Site criado.', true);
         load();
       } catch (e) { setMsg('Falha de conexão.', false); }
     }
@@ -266,7 +266,7 @@
         const list = el('list');
         list.innerHTML = '';
         j.tenants.forEach(t => list.appendChild(tenantCard(t)));
-        setMsg(j.tenants.length + ' tenant(s) carregado(s).', true);
+        setMsg(j.tenants.length + ' site(s) carregado(s).', true);
       } catch (e) { setMsg('Falha de conexão.', false); }
     }
 
