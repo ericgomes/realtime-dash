@@ -18,6 +18,7 @@ create table if not exists public.tenants (
   view_token text unique,
   timezone text not null default 'America/Sao_Paulo',
   storage_mode text not null default 'shared',
+  tag_host text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -26,6 +27,7 @@ alter table public.tenants add column if not exists sample_rate numeric not null
 alter table public.tenants add column if not exists ingest_token text unique;
 alter table public.tenants add column if not exists retention_hours numeric not null default 3;
 alter table public.tenants add column if not exists view_token text unique;
+alter table public.tenants add column if not exists tag_host text;
 
 update public.tenants
 set ingest_token = 'ing_' || encode(gen_random_bytes(20), 'hex')

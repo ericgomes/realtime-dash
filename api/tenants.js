@@ -86,6 +86,8 @@ module.exports = async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
+    if (typeof body.tag_host === 'string' && body.tag_host) fields.tag_host = body.tag_host;
+
     if (body.id) {
       if (body.regenerate_token) fields.ingest_token = newToken('ing_');
       if (body.regenerate_view_token) fields.view_token = newToken('view_');

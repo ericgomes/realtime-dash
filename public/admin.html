@@ -185,6 +185,7 @@
       const viewInput = card.querySelector('[data-viewlink]');
       const openLink = card.querySelector('[data-openlink]');
       const tagHost = card.querySelector('[data-taghost]');
+      if (t.tag_host && TAG_HOSTS.some(h => h.url === t.tag_host)) tagHost.value = t.tag_host;
       const tagArea = card.querySelector('[data-gtmtag]');
       const render = () => {
         const host = tagHost.value;
@@ -222,6 +223,8 @@
       const payload = gather(scope);
       payload.id = id;
       payload.is_active = scope.querySelector('[data-field="is_active"]').checked;
+      const hostSel = scope.querySelector('[data-taghost]');
+      if (hostSel) payload.tag_host = hostSel.value;
       if (regenerate) payload.regenerate_token = true;
       if (regenerateView) payload.regenerate_view_token = true;
       try {
