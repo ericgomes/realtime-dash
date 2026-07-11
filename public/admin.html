@@ -129,6 +129,22 @@
     function gtmTag(token, pct, host) {
       return '<script async src="' + (host || TAG_HOSTS[0].url) + '/lsm.js?v=' + LSM_VERSION + '" data-token="' + token + '" data-sample="' + pct + '"><\/script>';
     }
+    function gtmTagInline(token, pct, host) {
+      const A = (host || TAG_HOSTS[0].url) + '/api/ingest';
+      return '<script>\n' +
+'(function(){\n' +
+'  var A=\'' + A + '\',T=\'' + token + '\',S=' + pct + ',last=location.pathname;\n' +
+'  if(window.__lsm)return;window.__lsm=1;\n' +
+'  if(Math.random()*100>=S)return;\n' +
+'  function P(t){var c=navigator.connection||{};return{page_location:location.href,page_path:location.pathname,sample_rate:S,nav_type:t,user_agent:navigator.userAgent,width:innerWidth,height:innerHeight,timestamp:new Date().toISOString(),effective_type:c.effectiveType||null,downlink:c.downlink||null};}\n' +
+'  function G(p){fetch(A,{method:\'POST\',headers:{\'content-type\':\'application/json\',\'x-ingest-token\':T},body:JSON.stringify(p),keepalive:true}).catch(function(){});}\n' +
+'  setTimeout(function(){var n=performance.getEntriesByType&&performance.getEntriesByType(\'navigation\')[0];if(!n||!n.loadEventEnd)return;var a=n.activationStart||0,p=P(\'load\');p.prerendered=a>0;p.load_time_ms=Math.max(0,Math.round(n.loadEventEnd-a));p.dom_ready_ms=Math.max(0,Math.round(n.domContentLoadedEventEnd-a));p.ttfb_ms=Math.round(n.responseStart-n.requestStart);G(p);},0);\n' +
+'  function R(){setTimeout(function(){if(location.pathname==last)return;last=location.pathname;G(P(\'spa\'));},0);}\n' +
+'  [\'pushState\',\'replaceState\'].forEach(function(m){var o=history[m];if(o)history[m]=function(){var r=o.apply(this,arguments);R();return r;};});\n' +
+'  addEventListener(\'popstate\',R);\n' +
+'})();\n' +
+'<\/script>';
+    }
 
     function tenantCard(t) {
       const card = document.createElement('details');
@@ -170,10 +186,19 @@
         '</div>' +
         '<details class="mt-3">' +
           '<summary class="text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer">Tag do GTM (HTML personalizado · gatilho All Pages · SPA automático)</summary>' +
-          '<div class="mt-2">' +
-            '<p class="text-xs text-slate-400 dark:text-slate-500 mb-2">A lógica mora em <code>/lsm.js</code> (cache 12&nbsp;h): cole uma vez e futuras mudanças propagam sozinhas. A tag já vem com <code>data-sample</code> (amostra no browser, não busca config). <b>Tráfego baixo:</b> remova o <code>data-sample</code> ao colar — aí a taxa vem do backend (<code>sample_rate</code> acima) por sessão, sem tocar na tag depois.</p>' +
-            '<textarea data-gtmtag readonly rows="3" spellcheck="false" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-xs font-mono"></textarea>' +
-            '<button data-copytag class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar tag</button>' +
+          '<div class="mt-2 space-y-4">' +
+            '<div>' +
+              '<p class="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">A) Loader <span class="font-normal text-slate-400">(recomendada)</span></p>' +
+              '<p class="text-xs text-slate-400 dark:text-slate-500 mb-2">Carrega <code>/lsm.js</code> (cache 12&nbsp;h): cole uma vez e futuras mudanças propagam sozinhas. <b>Exige o domínio em <code>script-src</code> no CSP do site.</b> Tráfego baixo: remova o <code>data-sample</code> pra taxa vir do backend por sessão.</p>' +
+              '<textarea data-gtmtag readonly rows="2" spellcheck="false" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-xs font-mono"></textarea>' +
+              '<button data-copytag class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar loader</button>' +
+            '</div>' +
+            '<div>' +
+              '<p class="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">B) Inline <span class="font-normal text-slate-400">(CSP restritivo · ex.: prospin)</span></p>' +
+              '<p class="text-xs text-slate-400 dark:text-slate-500 mb-2">Código embutido — <b>não precisa de <code>script-src</code></b> (só <code>connect-src</code> pro <code>/api/ingest</code>). Também trata SPA. Taxa fixa na tag; mudou no admin, precisa recolar.</p>' +
+              '<textarea data-gtmtag-inline readonly rows="10" spellcheck="false" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-2 text-xs font-mono"></textarea>' +
+              '<button data-copytag-inline class="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Copiar inline</button>' +
+            '</div>' +
           '</div>' +
         '</details>' +
         '<div class="mt-3 flex justify-end"><button data-save class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-200">Salvar</button></div>' +
@@ -187,18 +212,25 @@
       const tagHost = card.querySelector('[data-taghost]');
       if (t.tag_host && TAG_HOSTS.some(h => h.url === t.tag_host)) tagHost.value = t.tag_host;
       const tagArea = card.querySelector('[data-gtmtag]');
+      const tagInline = card.querySelector('[data-gtmtag-inline]');
       const render = () => {
         const host = tagHost.value;
+        const token = t.ingest_token || 'SEU_TOKEN';
         const viewLink = t.view_token ? (host + '/?token=' + t.view_token) : '';
         viewInput.value = viewLink;
         if (viewLink) { openLink.href = viewLink; openLink.classList.remove('hidden'); } else { openLink.classList.add('hidden'); }
-        tagArea.value = gtmTag(t.ingest_token || 'SEU_TOKEN', pctVal, host);
+        tagArea.value = gtmTag(token, pctVal, host);
+        tagInline.value = gtmTagInline(token, pctVal, host);
       };
       tagHost.addEventListener('change', render);
       render();
       card.querySelector('[data-copytag]').addEventListener('click', () => {
-        navigator.clipboard.writeText(card.querySelector('[data-gtmtag]').value);
-        setMsg('Tag copiada.', true);
+        navigator.clipboard.writeText(tagArea.value);
+        setMsg('Tag loader copiada.', true);
+      });
+      card.querySelector('[data-copytag-inline]').addEventListener('click', () => {
+        navigator.clipboard.writeText(tagInline.value);
+        setMsg('Tag inline copiada.', true);
       });
 
       card.querySelector('[data-copy]').addEventListener('click', () => {
