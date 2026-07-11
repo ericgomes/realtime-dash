@@ -70,12 +70,14 @@ Cada tenant tem `ingest_token` (tag do GTM) e `view_token` (link do dashboard), 
 Tag **HTML personalizado**, gatilho **All Pages**. A tag é só um *loader*: a lógica de RUM mora em [`public/lsm.js`](public/lsm.js), servido pela Vercel. Cole o snippet **uma vez** no GTM de cada cliente e, daí em diante, **qualquer mudança no `lsm.js` propaga sozinha** para todos os sites — sem reeditar/publicar o GTM.
 
 ```html
-<script async src="https://realtime-dash-eric-9609s-projects.vercel.app/lsm.js"
-  data-token="SEU_TOKEN_DO_TENANT" data-sample="10"></script>
+<script async src="https://realtime-dash-eric-9609s-projects.vercel.app/lsm.js?v=20260711"
+  data-token="SEU_TOKEN_DO_TENANT"></script>
 ```
 
-- `data-token` = `ingest_token` do cliente (em `tenants.ingest_token`). Identifica **e** autentica (não use `?tenant=slug`, que é adivinhável); por-cliente e revogável: `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`.
-- `data-sample` = amostragem **em %** (ex.: `10` = 10%, `5` = 5%), enviada no payload para o backend estimar o total real. O `lsm.js` deriva a URL da API do próprio `src`.
+- `data-token` = `ingest_token` do cliente (em `tenants.ingest_token`). Identifica **e** autentica (não use `?tenant=slug`, que é adivinhável); por-cliente e revogável: `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`. O `lsm.js` deriva a URL da API do próprio `src`.
+- **Amostragem vem do backend** por padrão: sem `data-sample`, o browser envia tudo e o `/api/ingest` re-amostra até `tenants.sample_rate` (editável no admin). Você controla a taxa sem tocar na tag.
+- **Só para tráfego alto:** adicione `data-sample="10"` (em %) para descartar no browser **antes** de enviar — menos invocações da Vercel. Nesse caso a taxa fica "presa" na tag até reeditar.
+- **Cache/versão:** o `lsm.js` tem cache curto (`max-age=300`, 5 min) — mudanças propagam sozinhas em até 5 min. O `?v=` (constante `LSM_VERSION` no admin) é o *escape hatch* para forçar atualização **imediata**; como fica na tag, usar exige recolar o snippet, então normalmente confie no cache curto.
 
 **SPA (mesma tag):** o `lsm.js` detecta troca de rota sem reload — faz *patch* de `history.pushState`/`replaceState` e escuta `popstate`. O carregamento real envia os tempos (`nav_type: 'load'`); cada navegação SPA envia um pageview **sem tempos** (`nav_type: 'spa'`), então conta no volume mas **não entra** nas métricas de load (o backend ignora eventos sem `load_time_ms`). Em site que não é SPA os listeners nunca disparam. Não precisa de trigger extra nem de mudança no banco (`nav_type` fica no `raw`).
 
@@ -120,8 +122,8 @@ Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenan
 
 ## Escala e custo
 
-- **Amostragem na tag do GTM** (`SAMPLE_PERCENT`, em %, padrão 10), enviada no payload como `sample_rate`. Reduz invocações da Vercel **e** storage. O backend aceita o valor em % (>1) ou fração (≤1) e normaliza; guarda a taxa efetiva por evento e estima o total real somando `1/taxa`. O dashboard mostra a amostra e a estimativa.
-- **Rede de segurança:** `tenants.sample_rate` é um **teto** por cliente (também aceita % ou fração). Se um evento chegar sem amostragem (ex.: removeram o `SAMPLE_PERCENT` da tag), o `/api/ingest` re-amostra no servidor até esse teto — protegendo o custo mesmo com erro no GTM.
+- **Amostragem controlada pelo backend** (`tenants.sample_rate`, em % ou fração, padrão 10%, editável no admin). Por padrão o `lsm.js` envia tudo e o `/api/ingest` re-amostra até esse teto: guarda a taxa efetiva por evento e estima o total real somando `1/taxa`. O dashboard mostra a amostra e a estimativa. Mudar a taxa não exige tocar na tag.
+- **Amostragem no browser (opcional):** `data-sample="N"` na tag descarta antes de enviar, cortando **invocações da Vercel** em sites de tráfego alto. É sempre limitada pelo teto `tenants.sample_rate` (o servidor re-amostra se vier acima). Trade-off: a taxa fica presa na tag até reeditar.
 - **Retenção por tenant** (`retention_hours`, padrão **3h**): é um monitor ao vivo, não um histórico (o GA4 cobre o passado). O `/api/aggregate` descarta eventos brutos com mais de 3h. Por isso os períodos vão só até 3h.
 - Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 

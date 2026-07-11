@@ -4,5 +4,14 @@
       "path": "/api/aggregate",
       "schedule": "0 3 * * *"
     }
+  ],
+  "headers": [
+    {
+      "source": "/lsm.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=300" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
   ]
 }
