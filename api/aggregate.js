@@ -38,7 +38,8 @@ async function fetchEvents(supabase, tenantId, startISO, endISO) {
       .lte('created_at', endISO)
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1);
-    if (error || !data) break;
+    if (error) return null;
+    if (!data) break;
     all.push(...data);
     if (data.length < pageSize) break;
     from += pageSize;
@@ -125,6 +126,7 @@ module.exports = async (req, res) => {
       const windowEnd = new Date(now);
       const windowStart = new Date(now - p.minutes * 60000);
       const allEvents = await fetchEvents(supabase, tenant.id, windowStart.toISOString(), windowEnd.toISOString());
+      if (allEvents === null) { skipped++; continue; }
       const events = allEvents.filter(e => !e.is_bot);
       const overall = overallStats(events, tenant);
       overall.botPercent = pct(allEvents.length - events.length, allEvents.length);
