@@ -75,69 +75,16 @@ O token identifica **e** autentica o cliente (não use `?tenant=slug`, que é ad
 
 ```html
 <script>
-(function() {
-  var API = 'https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest';
-  var TOKEN = 'SEU_TOKEN_DO_TENANT';
-  var SAMPLE_PERCENT = 10;
-
-  if (window.__lsm) return;
-  window.__lsm = 1;
-  if (Math.random() * 100 >= SAMPLE_PERCENT) return;
-
-  function payload(navType) {
-    var p = {
-      page_location: location.href,
-      page_path: location.pathname,
-      sample_rate: SAMPLE_PERCENT,
-      nav_type: navType,
-      user_agent: navigator.userAgent,
-      width: window.innerWidth,
-      height: window.innerHeight,
-      timestamp: new Date().toISOString()
-    };
-    if (navigator.connection) {
-      p.effective_type = navigator.connection.effectiveType || null;
-      p.downlink = navigator.connection.downlink || null;
-    }
-    return p;
-  }
-
-  function send(p) {
-    fetch(API, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-ingest-token': TOKEN },
-      body: JSON.stringify(p),
-      keepalive: true
-    }).catch(function() {});
-  }
-
-  // 1) carregamento real: envia os tempos
-  setTimeout(function() {
-    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-    if (!nav || !nav.loadEventEnd) return;
-    var act = nav.activationStart || 0;
-    var p = payload('load');
-    p.prerendered = act > 0;
-    p.load_time_ms = Math.max(0, Math.round(nav.loadEventEnd - act));
-    p.dom_ready_ms = Math.max(0, Math.round(nav.domContentLoadedEventEnd - act));
-    p.ttfb_ms = Math.round(nav.responseStart - nav.requestStart);
-    send(p);
-  }, 0);
-
-  // 2) SPA: detecta troca de rota (sem reload) e envia pageview sem tempos
-  var lastPath = location.pathname;
-  function onRoute() {
-    setTimeout(function() {
-      if (location.pathname === lastPath) return;
-      lastPath = location.pathname;
-      send(payload('spa'));
-    }, 0);
-  }
-  var _push = history.pushState;
-  if (_push) history.pushState = function() { var r = _push.apply(this, arguments); onRoute(); return r; };
-  var _rep = history.replaceState;
-  if (_rep) history.replaceState = function() { var r = _rep.apply(this, arguments); onRoute(); return r; };
-  window.addEventListener('popstate', onRoute);
+(function(){
+  var A='https://realtime-dash-eric-9609s-projects.vercel.app/api/ingest',T='SEU_TOKEN_DO_TENANT',S=10,last=location.pathname;
+  if(window.__lsm)return;window.__lsm=1;
+  if(Math.random()*100>=S)return;
+  function P(t){var c=navigator.connection||{};return{page_location:location.href,page_path:location.pathname,sample_rate:S,nav_type:t,user_agent:navigator.userAgent,width:innerWidth,height:innerHeight,timestamp:new Date().toISOString(),effective_type:c.effectiveType||null,downlink:c.downlink||null};}
+  function G(p){fetch(A,{method:'POST',headers:{'content-type':'application/json','x-ingest-token':T},body:JSON.stringify(p),keepalive:true}).catch(function(){});}
+  setTimeout(function(){var n=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];if(!n||!n.loadEventEnd)return;var a=n.activationStart||0,p=P('load');p.prerendered=a>0;p.load_time_ms=Math.max(0,Math.round(n.loadEventEnd-a));p.dom_ready_ms=Math.max(0,Math.round(n.domContentLoadedEventEnd-a));p.ttfb_ms=Math.round(n.responseStart-n.requestStart);G(p);},0);
+  function R(){setTimeout(function(){if(location.pathname==last)return;last=location.pathname;G(P('spa'));},0);}
+  ['pushState','replaceState'].forEach(function(m){var o=history[m];if(o)history[m]=function(){var r=o.apply(this,arguments);R();return r;};});
+  addEventListener('popstate',R);
 })();
 </script>
 ```
