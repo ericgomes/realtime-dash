@@ -71,13 +71,13 @@ Tag **HTML personalizado**, gatilho **All Pages**. A tag é só um *loader*: a l
 
 ```html
 <script async src="https://realtime-dash-eric-9609s-projects.vercel.app/lsm.js?v=20260711"
-  data-token="SEU_TOKEN_DO_TENANT"></script>
+  data-token="SEU_TOKEN_DO_TENANT" data-sample="10"></script>
 ```
 
 - `data-token` = `ingest_token` do cliente (em `tenants.ingest_token`). Identifica **e** autentica (não use `?tenant=slug`, que é adivinhável); por-cliente e revogável: `update tenants set ingest_token = 'ing_' || encode(gen_random_bytes(20),'hex') where slug = '...';`. O `lsm.js` deriva a URL da API do próprio `src`.
-- **Amostragem vem do backend e é aplicada no browser:** o `lsm.js` busca a taxa em `/api/config?token=...` (= `tenants.sample_rate`, editável no admin), cacheia em `sessionStorage` (**1 requisição por sessão**, e a resposta é cacheada na borda por token) e descarta o excedente **antes** de enviar. Assim você controla a taxa sem tocar na tag **e** corta invocações da Vercel. Mudou a taxa no admin? Passa a valer nas próximas sessões.
-- **Override opcional:** `data-sample="10"` (em %) fixa a taxa na própria tag e pula a busca em `/api/config`. Sempre limitada pelo teto `tenants.sample_rate` (o `/api/ingest` re-amostra se vier acima).
-- **Cache/versão:** o `lsm.js` tem cache curto (`max-age=300`, 5 min) — mudanças propagam sozinhas em até 5 min. O `?v=` (constante `LSM_VERSION` no admin) é o *escape hatch* para forçar atualização **imediata**; como fica na tag, usar exige recolar o snippet, então normalmente confie no cache curto.
+- **`data-sample` (em %) presente por padrão:** o browser amostra localmente com essa taxa e **não** busca config — ideal para tráfego alto (menos invocações). A taxa fica fixa na tag até reeditar; é sempre limitada pelo teto `tenants.sample_rate` (o `/api/ingest` re-amostra se vier acima).
+- **Tráfego baixo → remova o `data-sample`:** sem ele, o `lsm.js` busca a taxa em `/api/config?token=...` (= `tenants.sample_rate`), cacheia em `sessionStorage` (**1 requisição por sessão**, resposta cacheada na borda por token) e amostra no browser. Aí você controla a taxa pelo admin sem tocar na tag.
+- **Cache/versão:** o `lsm.js` tem cache de `max-age=43200` (12 h) — muda pouco. O `?v=` (constante `LSM_VERSION` no admin) é o *escape hatch* para forçar atualização **imediata**; como fica na tag, usar exige recolar o snippet.
 
 **SPA (mesma tag):** o `lsm.js` detecta troca de rota sem reload — faz *patch* de `history.pushState`/`replaceState` e escuta `popstate`. O carregamento real envia os tempos (`nav_type: 'load'`); cada navegação SPA envia um pageview **sem tempos** (`nav_type: 'spa'`), então conta no volume mas **não entra** nas métricas de load (o backend ignora eventos sem `load_time_ms`). Em site que não é SPA os listeners nunca disparam. Não precisa de trigger extra nem de mudança no banco (`nav_type` fica no `raw`).
 
@@ -125,8 +125,9 @@ Os dados podem estar atrasados conforme `aggregation_freshness_minutes` do tenan
 
 ## Escala e custo
 
-- **Amostragem controlada pelo backend, aplicada no browser** (`tenants.sample_rate`, em % ou fração, padrão 10%, editável no admin). O `lsm.js` busca a taxa em `/api/config` (cacheada por sessão + na borda), descarta o excedente antes de enviar — cortando **invocações da Vercel e storage** — e envia a taxa efetiva por evento. O backend estima o total real somando `1/taxa`; o dashboard mostra a amostra e a estimativa. Mudar a taxa não exige tocar na tag.
-- **Rede de segurança:** `tenants.sample_rate` também é o **teto** no `/api/ingest`. Se um evento chegar acima do teto (ex.: `data-sample` fixo alto, ou config indisponível → envia a 100%), o servidor re-amostra até o teto — protegendo o custo mesmo assim.
+- **Amostragem no browser** (padrão 10%). A tag gerada já traz `data-sample`, então o `lsm.js` descarta o excedente **antes** de enviar — cortando **invocações da Vercel e storage** — e manda a taxa efetiva por evento. O backend estima o total real somando `1/taxa`; o dashboard mostra a amostra e a estimativa.
+- **Taxa fixa vs. pelo backend:** com `data-sample` a taxa fica na tag (bom p/ tráfego alto). Removendo o `data-sample`, o `lsm.js` busca `tenants.sample_rate` em `/api/config` (cache por sessão + borda) e amostra com ela — controle central sem reeditar a tag.
+- **Rede de segurança:** `tenants.sample_rate` também é o **teto** no `/api/ingest`. Se um evento chegar acima do teto (ex.: `data-sample` alto, ou config indisponível → envia a 100%), o servidor re-amostra até o teto — protegendo o custo mesmo assim.
 - **Retenção por tenant** (`retention_hours`, padrão **3h**): é um monitor ao vivo, não um histórico (o GA4 cobre o passado). O `/api/aggregate` descarta eventos brutos com mais de 3h. Por isso os períodos vão só até 3h.
 - Como o dashboard lê snapshots pequenos (não milhares de eventos), o front escala bem mesmo com tráfego alto.
 
